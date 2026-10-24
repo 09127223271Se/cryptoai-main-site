@@ -68,6 +68,7 @@ def health():
         "business_module": os.path.isdir(BUSINESS_PATH),
         "ai_provider": ai_client.provider(),
         "telegram": bool(os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_ADMIN_CHAT")),
+        "market_data_errors": dict(list(trader_engine.last_errors.items())[:5]),
     })
 
 
@@ -115,20 +116,47 @@ def api_candles():
 
     def one(sym):
         try:
-            c = trader_engine.fetch_candles(sym, interval, limit)
-            rows = [[int(c["t"][i]), float(c["o"][i]), float(c["h"][i]), float(c["l"][i]), float(c["c"][i]), float(c["v"][i])]
-                    for i in range(len(c["c"]))]
-            return sym, rows
+            rows, src = trader_engine.fetch_rows(sym, interval, limit)
+            return sym, (rows, src)
         except Exception:
             return sym, None
 
-    with ThreadPoolExecutor(max_workers=8) as ex:
+    with ThreadPoolExecutor(max_workers=6) as ex:
         res = dict(ex.map(one, syms))
-    data = {k: v for k, v in res.items() if v}
+    data = {k: v[0] for k, v in res.items() if v}
+    sources = sorted({v[1] for v in res.values() if v})
     out = {"ok": len(data) > 0, "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-           "data": data, "missing": [k for k, v in res.items() if not v]}
+           "source": " + ".join(sources), "data": data, "missing": [k for k, v in res.items() if not v]}
     if out["ok"]:
         _candle_cache.update(key=key, at=time.time(), data=out)
+    return jsonify(out)
+
+
+_price_cache = {"key": None, "at": 0, "data": None}
+
+
+@app.route("/api/prices")
+def api_prices():
+    """Live prices + 24h change for the ticker: {ok, fetched_at, source, prices: [{c, price, chg24h}]}"""
+    syms = [s.strip().upper() for s in request.args.get("symbols", "BTC,ETH,BNB").split(",") if s.strip()][:10]
+    key = tuple(syms)
+    if _price_cache["key"] == key and time.time() - _price_cache["at"] < 30:
+        return jsonify(_price_cache["data"])
+
+    def one(sym):
+        try:
+            rows, src = trader_engine.fetch_rows(sym, "1h", 25)
+            last, prev = rows[-1][4], rows[0][4]
+            return {"c": sym, "price": last, "chg24h": last / prev - 1, "source": src}
+        except Exception:
+            return None
+
+    with ThreadPoolExecutor(max_workers=5) as ex:
+        prices = [p for p in ex.map(one, syms) if p]
+    out = {"ok": bool(prices), "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+           "source": " + ".join(sorted({p["source"] for p in prices})), "prices": prices}
+    if prices:
+        _price_cache.update(key=key, at=time.time(), data=out)
     return jsonify(out)
 
 

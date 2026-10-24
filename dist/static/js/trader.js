@@ -166,12 +166,12 @@ async function loadLive(){
     for(const [sym] of COINS){const rows=j.data[sym];if(!rows||rows.length<200)continue;
       list.push(analyze(sym,rows.map(x=>({t:x[0],o:x[1],h:x[2],l:x[3],c:x[4],v:x[5]}))))}
     if(list.length<5)return false;
-    state.list=list;state.source="live";state.fetched=j.fetched_at;return true;
+    state.list=list;state.source="live";state.fetched=j.fetched_at;state.liveSource=j.source||"";return true;
   }catch(e){return false}
 }
 function setDataPill(){
   const p=$("data-pill");
-  if(state.source==="live"){p.className="pill live";p.textContent="دادهٔ زندهٔ Binance · "+(state.fetched||"").slice(11,16)+" UTC"}
+  if(state.source==="live"){p.className="pill live";const t=state.fetched?new Date(state.fetched).toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"}):"";p.textContent="دادهٔ زنده · "+(state.liveSource||"")+" · "+t}
   else{p.className="pill warn";p.textContent=window.SITE_MODE==="server"?"Binance در دسترس نبود؛ دادهٔ نمونه":"پیش‌نمایش: دادهٔ نمونه، قیمت‌ها واقعی نیستند"}
 }
 
@@ -422,5 +422,15 @@ let rz;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{drawMa
   setDataPill();
   const firstHit=state.list.findIndex(a=>a.tags.some(t=>t.id==="bo_up"||t.id==="dbl_b"));
   select(firstHit>=0?firstHit:0);
+  if(state.source==="live"){
+    // refresh live candles every 2 minutes, keep the selected coin
+    setInterval(async()=>{
+      if(document.hidden)return;
+      const sym=state.list[state.sel]&&state.list[state.sel].sym,csv=state.list.filter(x=>x.csv);
+      if(!(await loadLive()))return;
+      state.list=[...csv,...state.list];setDataPill();
+      const i=state.list.findIndex(a=>a.sym===sym);select(i>=0?i:0);
+    },120000);
+  }
 })();
 })();

@@ -23,24 +23,96 @@ import math
 import requests
 import numpy as np
 
-BINANCE = "https://data-api.binance.vision/api/v3/klines"   # market-data-only host
 DEFAULT_COINS = ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "TON", "ADA", "AVAX", "LINK",
                  "DOT", "TRX", "POL", "LTC", "NEAR", "APT", "ARB", "OP", "SUI", "PEPE",
                  "SHIB", "ATOM", "INJ", "FET"]
 
 
 # ---------------------------------------------------------------- data
+# Several public exchanges, tried in order. The first one that answers wins and is tried first next time.
+# Each returns rows [t_seconds, o, h, l, c, v] oldest first. No API keys needed.
+UA = {"User-Agent": "CryptoAI/1.0"}
+_INTERVALS = {  # our name -> (binance, okx, bybit, coinbase seconds)
+    "1h": ("1h", "1H", "60", 3600), "4h": ("4h", "4H", "240", None),
+    "15m": ("15m", "15m", "15", 900), "1d": ("1d", "1D", "D", 86400),
+}
+
+
+def _binance(host):
+    def f(sym, iv, limit):
+        r = requests.get(f"https://{host}/api/v3/klines", headers=UA, timeout=10,
+                         params={"symbol": f"{sym}USDT", "interval": _INTERVALS[iv][0], "limit": limit})
+        r.raise_for_status()
+        return [[int(k[0]) // 1000, float(k[1]), float(k[2]), float(k[3]), float(k[4]), float(k[5])] for k in r.json()]
+    f.__name__ = host
+    return f
+
+
+def _okx(sym, iv, limit):
+    r = requests.get("https://www.okx.com/api/v5/market/candles", headers=UA, timeout=10,
+                     params={"instId": f"{sym}-USDT", "bar": _INTERVALS[iv][1], "limit": min(limit, 300)})
+    r.raise_for_status()
+    j = r.json()
+    if j.get("code") != "0" or not j.get("data"):
+        raise RuntimeError(f"okx: {j.get('msg') or 'no data'}")
+    return [[int(k[0]) // 1000, float(k[1]), float(k[2]), float(k[3]), float(k[4]), float(k[5])] for k in reversed(j["data"])]
+
+
+def _bybit(sym, iv, limit):
+    r = requests.get("https://api.bybit.com/v5/market/kline", headers=UA, timeout=10,
+                     params={"category": "spot", "symbol": f"{sym}USDT", "interval": _INTERVALS[iv][2], "limit": min(limit, 1000)})
+    r.raise_for_status()
+    j = r.json()
+    rows = (j.get("result") or {}).get("list") or []
+    if j.get("retCode") != 0 or not rows:
+        raise RuntimeError(f"bybit: {j.get('retMsg') or 'no data'}")
+    return [[int(k[0]) // 1000, float(k[1]), float(k[2]), float(k[3]), float(k[4]), float(k[5])] for k in reversed(rows)]
+
+
+def _coinbase(sym, iv, limit):
+    g = _INTERVALS[iv][3]
+    if not g:
+        raise RuntimeError("coinbase: interval not supported")
+    r = requests.get(f"https://api.exchange.coinbase.com/products/{sym}-USD/candles", headers=UA, timeout=10,
+                     params={"granularity": g})
+    r.raise_for_status()
+    rows = r.json()[:limit]   # [time, low, high, open, close, volume] newest first
+    return [[int(k[0]), float(k[3]), float(k[2]), float(k[1]), float(k[4]), float(k[5])] for k in reversed(rows)]
+
+
+_okx.__name__, _bybit.__name__, _coinbase.__name__ = "OKX", "Bybit", "Coinbase"
+SOURCES = [_binance("data-api.binance.vision"), _binance("api.binance.com"), _okx, _bybit, _coinbase]
+SOURCE_LABEL = {"data-api.binance.vision": "Binance", "api.binance.com": "Binance", "OKX": "OKX", "Bybit": "Bybit", "Coinbase": "Coinbase"}
+_preferred = [0]          # index of the source that answered last
+last_errors: dict = {}    # symbol -> last error text, for /api/health
+
+
+def fetch_rows(symbol: str, interval: str = "1h", limit: int = 240):
+    """Returns (rows, source_label). Tries the last working source first, then the others."""
+    if interval not in _INTERVALS:
+        raise ValueError(f"unsupported interval {interval}")
+    order = [_preferred[0]] + [i for i in range(len(SOURCES)) if i != _preferred[0]]
+    errs = []
+    for i in order:
+        src = SOURCES[i]
+        try:
+            rows = src(symbol.upper(), interval, limit)
+            if len(rows) < min(50, limit):
+                raise RuntimeError("too few candles")
+            _preferred[0] = i
+            last_errors.pop(symbol, None)
+            return rows[-limit:], SOURCE_LABEL[src.__name__]
+        except Exception as e:  # try the next exchange
+            errs.append(f"{src.__name__}: {str(e)[:120]}")
+    last_errors[symbol] = errs
+    raise RuntimeError("; ".join(errs))
+
+
 def fetch_candles(symbol: str, interval: str = "1h", limit: int = 240) -> dict:
     """Returns dict of numpy arrays: t, o, h, l, c, v (oldest first)."""
-    r = requests.get(BINANCE, params={"symbol": f"{symbol}USDT", "interval": interval, "limit": limit}, timeout=15)
-    r.raise_for_status()
-    k = np.array(r.json(), dtype=object)
-    return {
-        "t": k[:, 0].astype(np.int64) // 1000,
-        "o": k[:, 1].astype(float), "h": k[:, 2].astype(float),
-        "l": k[:, 3].astype(float), "c": k[:, 4].astype(float),
-        "v": k[:, 5].astype(float),
-    }
+    rows, _ = fetch_rows(symbol, interval, limit)
+    k = np.array(rows, dtype=float)
+    return {"t": k[:, 0].astype(np.int64), "o": k[:, 1], "h": k[:, 2], "l": k[:, 3], "c": k[:, 4], "v": k[:, 5]}
 
 
 # ---------------------------------------------------------------- indicators

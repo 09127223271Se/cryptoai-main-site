@@ -15,12 +15,39 @@ try {
 const STATIONS = DATA.stations;
 $("updated").textContent = `اخبار کریپتو از هر گوشهٔ دنیا · به‌روز تا ${DATA.updated_fa} (${DATA.updated})`;
 const tk = $("ticker");
-(DATA.market || []).forEach(m => {
-  const s = document.createElement("span"); s.className = "pill";
-  s.innerHTML = `${m.c} <b class="num"></b> <small class="num"></small>`;
-  s.querySelector("b").textContent = "≈ " + m.p; s.querySelector("small").textContent = DATA.market_date || "";
-  tk.append(s);
-});
+function fmtPrice(p) { return p >= 1000 ? "$" + p.toLocaleString("en-US", { maximumFractionDigits: 0 }) : p >= 1 ? "$" + p.toFixed(2) : "$" + p.toPrecision(3); }
+function showSnapshot() {
+  tk.textContent = "";
+  (DATA.market || []).forEach(m => {
+    const s = document.createElement("span"); s.className = "pill";
+    s.innerHTML = `${m.c} <b class="num"></b> <small class="num"></small>`;
+    s.querySelector("b").textContent = "≈ " + m.p; s.querySelector("small").textContent = DATA.market_date || "";
+    tk.append(s);
+  });
+}
+async function showLive() {
+  try {
+    const j = await (await fetch(window.API_BASE + "/api/prices?symbols=BTC,ETH,BNB,SOL")).json();
+    if (!j.ok) return false;
+    tk.textContent = "";
+    j.prices.forEach(p => {
+      const s = document.createElement("span"); s.className = "pill live";
+      s.innerHTML = `${p.c} <b class="num"></b> <small class="num"></small>`;
+      s.querySelector("b").textContent = fmtPrice(p.price);
+      const sm = s.querySelector("small"); sm.textContent = (p.chg24h >= 0 ? "+" : "") + (p.chg24h * 100).toFixed(2) + "%";
+      sm.style.color = p.chg24h >= 0 ? "var(--up)" : "var(--down)";
+      tk.append(s);
+    });
+    const t = document.createElement("span"); t.className = "pill"; t.textContent = "زنده · " + j.source; tk.append(t);
+    DATA.liveMarket = j.prices.map(p => `${p.c} ${fmtPrice(p.price)} (${(p.chg24h * 100).toFixed(2)}% 24h)`).join(", ");
+    return true;
+  } catch (e) { return false; }
+}
+showSnapshot();
+if (window.SITE_MODE === "server") {
+  showLive();
+  setInterval(() => { if (!document.hidden) showLive(); }, 60000);
+}
 
 /* ---------------- globe ---------------- */
 const cv = $("cv"), ctx = cv.getContext("2d"), box = $("globe");
@@ -206,13 +233,13 @@ $("reanalyze").onclick = async () => {
   if (!selected) return; const s = selected;
   if (ctl) ctl.abort(); ctl = new AbortController();
   $("reanalyze").disabled = true; $("ai-s").textContent = "هوش مصنوعی در حال تحلیل اثر خبرها…";
-  const m = (DATA.market || []).map(x => `${x.c} ${x.p}`).join(", ");
+  const m = DATA.liveMarket ? "live now: " + DATA.liveMarket : (DATA.market || []).map(x => `${x.c} ${x.p}`).join(", ") + " (" + DATA.market_date + ")";
   const prompt = `You are a crypto market analyst for a Persian-language Telegram channel.
 Below are recent news items from one region (${s.en}). Decide which coins or market segments each item could move, and in which direction.
 Reply with ONLY a JSON array (max 4 objects) like:
 [{"c":["BTC","ETH"],"dir":"up"|"down"|"mixed","n":"one sentence in Persian (Farsi), max 30 words, on the likely market effect","w":"short Persian reason or timing note, max 15 words, may be empty"}]
 Rules: no buy/sell advice, no price targets, no entry points. If an item has no real market effect, say so with dir "mixed". Use coin tickers in Latin letters.
-Market context (${DATA.market_date}): ${m}.
+Market context: ${m}.
 NEWS:
 ${JSON.stringify(s.news.map(n => ({ date: n.d, title: n.en })), null, 1)}`;
   try {
