@@ -74,7 +74,7 @@ def socials() -> list:
     """Social profile links for the footer (set in Render; Instagram has a default)."""
     out = []
     for key, label, default in (("INSTAGRAM_URL", "Instagram", "https://www.instagram.com/cryptoglobalfarsi/"),
-                                ("TIKTOK_URL", "TikTok", ""), ("X_URL", "X", "")):
+                                ("TIKTOK_URL", "TikTok", "https://www.tiktok.com/@cryptoglobalfarsi"), ("X_URL", "X", "")):
         url = os.environ.get(key, default).strip()
         if url:
             out.append((label, url))
