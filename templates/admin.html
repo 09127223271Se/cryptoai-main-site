@@ -53,6 +53,20 @@
     </div>
   </section>
 
+  <section class="panel">
+    <div class="ph"><h2>بازی «بالا یا پایین؟» و دعوت دوستان</h2></div>
+    <div class="pb">
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <tr><td style="padding:6px 0;color:var(--muted)">دور فعال (فارسی / انگلیسی)</td><td class="num">{{ grow.rounds.get('fa') or '–' }} / {{ grow.rounds.get('en') or '–' }}</td></tr>
+        <tr><td style="padding:6px 0;color:var(--muted)">بازیکن‌ها (فارسی / انگلیسی)</td><td class="num">{{ grow.players.get('fa', 0) }} / {{ grow.players.get('en', 0) }}</td></tr>
+        <tr><td style="padding:6px 0;color:var(--muted)">دعوت‌کننده‌ها · عضو جدید از دعوت</td><td class="num">{{ grow.inviters }} · {{ grow.invited }}</td></tr>
+        <tr><td style="padding:6px 0;color:var(--muted)">جایزه‌های در انتظار</td><td class="num">{{ grow.pending_prizes }}</td></tr>
+        {% if grow.last_error %}<tr><td style="padding:6px 0;color:var(--muted)">آخرین خطا</td><td style="color:var(--down)">{{ grow.last_error }}</td></tr>{% endif %}
+      </table>
+      <p class="status">هر روز ساعت ۱۵:۰۰ UTC یک دور جدید در هر کانال شروع می‌شود و ۲۴ ساعت بعد نتیجه اعلام می‌شود. برندهٔ هر هفته یک ماه Pro می‌گیرد؛ هر ۳ دعوت موفق = ۷ روز Pro.</p>
+    </div>
+  </section>
+
   {% if bot.posted %}
   <section class="panel">
     <div class="ph"><h2>آخرین پست‌های منتشرشده</h2></div>

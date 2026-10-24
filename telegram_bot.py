@@ -90,8 +90,14 @@ def ensure_webhook():
         call("setWebhook", url=c["base"] + "/telegram/webhook", secret_token=webhook_secret(),
              allowed_updates=["message", "callback_query", "chat_member"], drop_pending_updates=False)
         try:
-            call("setMyCommands", commands=[{"command": "news", "description": "ساخت پست خبری تازه برای تأیید"},
-                                            {"command": "status", "description": "وضعیت ربات"}])
+            call("setMyCommands", commands=[{"command": "start", "description": "Invite link · لینک دعوت"},
+                                            {"command": "invite", "description": "My invite link · لینک دعوت من"},
+                                            {"command": "me", "description": "My score · امتیاز من"}])
+            call("setMyCommands", scope={"type": "chat", "chat_id": int(c["admin"])},
+                 commands=[{"command": "news", "description": "ساخت و انتشار پست خبری تازه"},
+                           {"command": "status", "description": "وضعیت ربات"},
+                           {"command": "invite", "description": "لینک دعوت من"},
+                           {"command": "me", "description": "امتیاز من"}])
         except Exception:
             pass
         _state["webhook_ok"], _state["webhook_error"] = True, None
@@ -218,10 +224,19 @@ def handle_update(upd: dict) -> None:
     c = cfg()
     if upd.get("chat_member"):
         import pro
+        import growth
         pro.on_chat_member(upd)
+        try:
+            growth.on_channel_member(upd)
+        except Exception as e:
+            _state["last_error"] = f"growth member: {e}"[:200]
         return
     admin = str(c["admin"])
     cq = upd.get("callback_query")
+    if cq and (cq.get("data") or "").startswith(("g:", "gs:")):
+        import growth
+        growth.on_vote(cq)
+        return
     if cq:
         if str(cq.get("from", {}).get("id")) != admin and str(cq.get("message", {}).get("chat", {}).get("id")) != admin:
             call("answerCallbackQuery", callback_query_id=cq["id"], text="اجازه ندارید")
@@ -299,8 +314,10 @@ def handle_update(upd: dict) -> None:
     txt = (m.get("text") or "").strip()
     if not txt:
         return
-    if chat != admin:
-        call("sendMessage", chat_id=chat, text="این ربات فقط برای مدیر کانال است. 🙏")
+    if chat != admin or txt.startswith(("/invite", "/me")) or (txt.startswith("/start ") and "ref" in txt):
+        if (m.get("chat") or {}).get("type") == "private":
+            import growth
+            growth.on_private(m)
         return
     if txt.startswith("/news"):
         call("sendMessage", chat_id=chat, text="⏳ در حال ساختن پست از خبرهای زنده…")
@@ -370,6 +387,11 @@ def start_loop():
                 pro.tick()
             except Exception as e:
                 _state["last_error"] = "pro: " + str(e)[:180]
+            try:
+                import growth
+                growth.tick()
+            except Exception as e:
+                _state["last_error"] = "growth: " + str(e)[:180]
             time.sleep(60)
     threading.Thread(target=run, daemon=True).start()
 

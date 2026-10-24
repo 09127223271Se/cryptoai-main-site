@@ -96,3 +96,10 @@ static/data/stations.json   ایستگاه‌ها، خبرها و نکته‌ه�
 - News analysis is produced once in both languages (Persian and English titles, reasons and summaries).
 - `TELEGRAM_CHANNEL_EN` (e.g. `@CryptoAI_Global`): the bot posts the English card and caption there, at the same time as the Persian channel. The bot must be an admin of that channel.
 - `AUTO_PUBLISH` (default on): posts go straight to the channels and the admin gets a notification with a delete button. `AUTO_PUBLISH=0` restores approve/reject.
+
+## Growth: "Up or Down?" game and invite rewards (`growth.py`)
+
+- Daily at `GAME_HOUR_UTC` (default 15): a round in each public channel with ⬆️/⬇️ buttons; voting closes after `GAME_LOCK_HOURS` (default 2); settled 24 h later against the live BTC price, with a weekly leaderboard.
+- Each Monday the best predictor of the week in each channel gets 30 days of Pro (a one-time invite link to the Pro channel).
+- Anyone who opens the bot gets a personal invite link; every `REF_FRIENDS` (default 3) new members through it = `REF_PRO_DAYS` (default 7) days of Pro.
+- The bot needs, in each public channel, the admin right to invite users via link (for personal links and join tracking).

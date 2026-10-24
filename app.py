@@ -216,7 +216,8 @@ def admin_page():
             error = "رمز درست نیست."
     if not is_admin():
         return page("admin", "login.html", error=error)
-    return page("admin", "admin.html", bot=telegram_bot.status(), cfg=telegram_bot.cfg(), prostat=pro.stats())
+    import growth
+    return page("admin", "admin.html", bot=telegram_bot.status(), cfg=telegram_bot.cfg(), prostat=pro.stats(), grow=growth.stats())
 
 
 @app.route("/logout")

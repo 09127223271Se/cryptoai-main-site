@@ -59,7 +59,7 @@ def ready() -> bool:
 # ------------------------------------------------------------------ backup / restore (pinned in admin chat)
 def _snapshot() -> dict:
     with _lock:
-        return {k: S[k] for k in ("members", "orders", "stars_link", "alerted", "brief_day", "revenue_usdt", "posted_urls")}
+        return {k: S[k] for k in ("members", "orders", "stars_link", "alerted", "brief_day", "revenue_usdt", "posted_urls", "growth") if k in S}
 
 
 def backup():
@@ -104,7 +104,7 @@ def restore():
         data = json.loads(raw)
         with _lock:
             S["backup_msg"] = (chat.get("pinned_message") or {}).get("message_id")
-            for k in ("members", "orders", "stars_link", "alerted", "brief_day", "revenue_usdt", "posted_urls"):
+            for k in ("members", "orders", "stars_link", "alerted", "brief_day", "revenue_usdt", "posted_urls", "growth"):
                 if k in data:
                     S[k] = data[k]
     except Exception as e:
@@ -209,14 +209,20 @@ def on_chat_member(upd: dict):
         return
     new = cm.get("new_chat_member") or {}
     name = ((cm.get("invite_link") or {}).get("name") or "")
-    if new.get("status") != "member" or not name.startswith("usdt-"):
+    if new.get("status") != "member" or not name.startswith(("usdt-", "gift-")):
         return
     uid = str((new.get("user") or {}).get("id"))
     oid = name[5:]
+    period, via = PERIOD, "usdt"
+    if name.startswith("gift-"):          # prize from the game or from inviting friends: gift-<uid>-<days>
+        try:
+            period, via = int(name.rsplit("-", 1)[1]) * 24 * 3600, "gift"
+        except Exception:
+            period, via = 7 * 24 * 3600, "gift"
     with _lock:
         m = S["members"].get(uid, {"exp": 0})
         start = max(time.time(), m.get("exp", 0))
-        S["members"][uid] = {"exp": start + PERIOD, "via": "usdt", "order": oid,
+        S["members"][uid] = {"exp": start + period, "via": via, "order": oid,
                              "name": (new.get("user") or {}).get("first_name", "")}
         if oid in S["orders"]:
             S["orders"][oid]["user"] = uid
@@ -234,7 +240,7 @@ def expire_members():
     now = time.time()
     changed = False
     for uid, m in list(S["members"].items()):
-        if m.get("via") != "usdt":
+        if m.get("via") not in ("usdt", "gift"):
             continue
         left = m["exp"] - now
         if 0 < left < 3 * 24 * 3600 and not m.get("warned"):
