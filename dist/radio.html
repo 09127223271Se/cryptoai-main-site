@@ -17,6 +17,7 @@
     window.ASSET_BASE = "static/";
     window.IS_ADMIN = true;
     window.LANG = "fa";
+    window.MUSIC_EMBED = "";
   </script>
   <script src="static/js/ai.js"></script>
   <script src="static/js/live-prices.js"></script>
@@ -38,6 +39,7 @@
       <a href="sales.html" >پیدا کردن مشتری</a>
       <a href="index.html" >پنل مدیر</a>
     </div>
+    <button type="button" class="nav-music" id="music-btn" aria-pressed="false" title="موزیک روشن/خاموش" aria-label="موزیک">♪</button>
     
     <div class="nav-status" id="nav-status"><span class="dot"></span><span id="nav-status-t">در حال بررسی…</span></div>
     
@@ -107,6 +109,7 @@
     });
   </script>
   <script src="static/js/market-bar.js"></script>
+  <script src="static/js/music.js"></script>
   
 <script>window.echarts={registerMap:function(n,j){if(n==="world")window.__worldGeo=j}};</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>

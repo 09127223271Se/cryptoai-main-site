@@ -17,6 +17,7 @@
     window.ASSET_BASE = "{{ asset('') }}";
     window.IS_ADMIN = {{ 'true' if is_admin else 'false' }};
     window.LANG = "{{ 'en' if EN else 'fa' }}";
+    window.MUSIC_EMBED = "{{ music_embed or '' }}";
   </script>
   <script src="{{ asset('js/ai.js') }}"></script>
   <script src="{{ asset('js/live-prices.js') }}"></script>
@@ -38,6 +39,7 @@
       {% if is_admin %}<a href="{{ link('sales') }}" {% if page=='sales' %}aria-current="page"{% endif %}>پیدا کردن مشتری</a>
       <a href="{{ link('admin') }}" {% if page=='admin' %}aria-current="page"{% endif %}>پنل مدیر</a>{% endif %}
     </div>
+    <button type="button" class="nav-music" id="music-btn" aria-pressed="false" title="{{ 'Music on/off' if EN else 'موزیک روشن/خاموش' }}" aria-label="{{ 'Music' if EN else 'موزیک' }}">♪</button>
     {% if alt_url %}<a class="nav-lang" href="{{ alt_url }}" hreflang="{{ 'fa' if EN else 'en' }}" lang="{{ 'fa' if EN else 'en' }}">{{ 'فارسی' if EN else 'English' }}</a>{% endif %}
     {% if is_admin %}<div class="nav-status" id="nav-status"><span class="dot"></span><span id="nav-status-t">{{ 'Checking…' if EN else 'در حال بررسی…' }}</span></div>
     {% elif channel %}<a class="nav-join" href="{{ channel }}" target="_blank" rel="noopener">{{ 'Telegram channel' if EN else 'کانال تلگرام' }}</a>{% endif %}
@@ -56,6 +58,7 @@
     });
   </script>{% endif %}
   <script src="{{ asset('js/market-bar.js') }}"></script>
+  <script src="{{ asset('js/music.js') }}"></script>
   {% block scripts %}{% endblock %}
 </div>
 {% if not fragment %}</body>

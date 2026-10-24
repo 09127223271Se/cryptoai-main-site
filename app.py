@@ -70,6 +70,13 @@ def channel_url(lang: str = "fa") -> str:
     return f"https://t.me/{ch[1:]}" if ch.startswith("@") else ""
 
 
+def music_embed() -> str:
+    """Official Spotify / YouTube embed link for the music button (MUSIC_EMBED_URL in Render). Only those hosts."""
+    url = os.environ.get("MUSIC_EMBED_URL", "").strip()
+    ok = url.startswith(("https://open.spotify.com/embed/", "https://www.youtube.com/embed/", "https://www.youtube-nocookie.com/embed/"))
+    return url if ok else ""
+
+
 def socials() -> list:
     """Social profile links for the footer (set in Render; Instagram has a default)."""
     out = []
@@ -87,7 +94,7 @@ def page(name: str, template: str, lang: str = "fa", **extra):
     alt = (PAGES if lang == "en" else PAGES_EN)[name] if name in PUBLIC else None
     return render_template(
         ("en/" + template) if lang == "en" else template, page=name, mode="server", api_base="", lang=lang,
-        is_admin=is_admin(), channel=channel_url(lang), alt_url=alt, socials=socials(),
+        is_admin=is_admin(), channel=channel_url(lang), alt_url=alt, socials=socials(), music_embed=music_embed(),
         asset=lambda p: url_for("static", filename=p) if p else "/static/",
         link=lambda n: pages[n], **extra,
     )
