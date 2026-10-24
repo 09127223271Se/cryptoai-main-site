@@ -10,14 +10,16 @@
     noDrv: "No market-moving news in the last 24h", press: "News pressure: ", topToday: (n, t, w) => `Today's main driver for ${n}: ${t} — ${w}`,
     none24: n => `No market-moving news for ${n} in the last 24 hours.`, upE: "Bullish effect", dnE: "Bearish effect",
     affects: n => "News that moves " + n, empty: "No news in this category yet.", hot: "Important", official: "Official source",
-    why: "Why?", close: "Close", reading: "Reading and analysing fresh news… a few seconds", last: "Last analysis: ",
+    why: "Why?", close: "Close", pos: "positive", neg: "negative", noEffect: "No clear effect on the markets",
+    filterBy: n => "Show all news that moves " + n, reading: "Reading and analysing fresh news… a few seconds", last: "Last analysis: ",
     retry: "Connection failed; retrying…", share: "% market share", preview: "Preview", loc: "en-GB"
   } : {
     now: "همین الان", min: " دقیقه پیش", hr: " ساعت پیش", day: " روز پیش", meter: "فشار خبری از نزولی قوی تا صعودی قوی",
     noDrv: "خبر اثرگذاری در ۲۴ ساعت اخیر نبوده", press: "فشار خبری: ", topToday: (n, t, w) => `مهم‌ترین عامل امروز برای ${n}: ${t} — ${w}`,
     none24: n => `در ۲۴ ساعت اخیر خبر اثرگذاری برای ${n} نبوده است.`, upE: "اثر صعودی", dnE: "اثر نزولی",
     affects: n => "خبرهایی که روی " + n + " اثر دارند", empty: "فعلاً خبری در این دسته نیست.", hot: "مهم", official: "منبع رسمی",
-    why: "چرا؟", close: "بستن", reading: "در حال خواندن و تحلیل خبرهای تازه… چند ثانیه دیگر", last: "آخرین تحلیل: ",
+    why: "چرا؟", close: "بستن", pos: "اثر مثبت", neg: "اثر منفی", noEffect: "اثر روشنی روی بازارها ندارد",
+    filterBy: n => "همهٔ خبرهای اثرگذار روی " + n, reading: "در حال خواندن و تحلیل خبرهای تازه… چند ثانیه دیگر", last: "آخرین تحلیل: ",
     retry: "اتصال برقرار نشد؛ دوباره تلاش می‌شود…", share: "% سهم بازار", preview: "پیش‌نمایش", loc: "fa-IR"
   };
   // language-specific fields of the data
@@ -112,21 +114,23 @@
       const t = document.createElement("span"); t.textContent = ago(n.ts) + (CITY(n) ? " · " + CITY(n) : ""); meta.append(t);
       const a = document.createElement("a"); a.target = "_blank"; a.rel = "noopener"; a.href = n.source.url; a.textContent = n.source.name; meta.append(a);
       el.querySelector("h3").textContent = T(n); el.querySelector("p").textContent = B(n);
-      const chips = el.querySelector(".chips");
+      // the effect of this story, always visible: one small coloured line per market
+      const eff = el.querySelector(".chips"); eff.className = "effects";
       const ims = (n.im || []).filter(x => x.d);
-      ims.forEach(x => {
-        const c = document.createElement("button"); c.type = "button"; c.className = "chip " + (x.d > 0 ? "up" : "down");
-        c.textContent = `${NAMES[x.a] || x.a} ${x.d > 0 ? "↑" : "↓"} ${STRENGTH[x.s] || ""}`;
-        c.onclick = () => openAsset(x.a);
-        chips.append(c);
-      });
-      if (ims.length) {
-        const more = document.createElement("button"); more.type = "button"; more.className = "more"; more.textContent = S.why;
-        const why = document.createElement("div"); why.className = "why"; why.hidden = true;
-        ims.forEach(x => { const s = document.createElement("span"); s.innerHTML = "<b></b> "; s.querySelector("b").textContent = (NAMES[x.a] || x.a) + ":"; s.append(Wy(x)); why.append(s); });
-        more.onclick = () => { why.hidden = !why.hidden; more.textContent = why.hidden ? S.why : S.close; };
-        el.append(more, why);
+      if (!ims.length) {
+        const e = document.createElement("span"); e.className = "eff none"; e.textContent = S.noEffect; eff.append(e);
       }
+      ims.forEach(x => {
+        const up = x.d > 0;
+        const line = document.createElement("button"); line.type = "button"; line.className = "eff " + (up ? "up" : "down");
+        line.title = S.filterBy(NAMES[x.a] || x.a);
+        line.innerHTML = `<span class="ar">${up ? "▲" : "▼"}</span><b></b><span class="tag"></span><span class="rs"></span>`;
+        line.querySelector("b").textContent = NAMES[x.a] || x.a;
+        line.querySelector(".tag").textContent = EN ? `${STRENGTH[x.s] || ""} ${up ? S.pos : S.neg} effect` : `${up ? S.pos : S.neg} ${STRENGTH[x.s] || ""}`;
+        const r = Wy(x); line.querySelector(".rs").textContent = r ? "— " + r : "";
+        line.onclick = () => openAsset(x.a);
+        eff.append(line);
+      });
       box.append(el);
     });
   }
