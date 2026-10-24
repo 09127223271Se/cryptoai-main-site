@@ -1,8 +1,25 @@
 {% extends "base.html" %}
 {% block title %}CryptoAI · Market Intelligence{% endblock %}
-{% block head %}<link rel="stylesheet" href="{{ asset('css/brief.css') }}">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/brief.css') }}"><link rel="stylesheet" href="{{ asset('css/floor.css') }}">{% endblock %}
 {% block content %}
 <div class="wrap">
+  {% include "_floor.html" %}
+  <section aria-labelledby="h-assets">
+    <div class="sec-head">
+      <h2 id="h-assets">News pressure on each market</h2>
+      <span class="status">Tap a card to see which stories are moving it</span>
+    </div>
+    <div class="assets" id="assets"></div>
+    <div class="drawer panel" id="drawer" hidden>
+      <div class="drawer-head">
+        <div><h3 id="dr-title"></h3><span class="pressure" id="dr-label"></span></div>
+        <button class="btn" id="dr-close" aria-label="Close">Close</button>
+      </div>
+      <p class="dr-summary" id="dr-summary"></p>
+      <div class="drivers" id="dr-list"></div>
+    </div>
+  </section>
+
   <section class="hero">
     <div class="hero-text">
       <span class="eyebrow"><span class="live-dot"></span> Market intelligence · live</span>
@@ -19,22 +36,6 @@
     </form>
     <div class="hero-meta">
       <span class="status" id="updated">Reading the latest news…</span>
-    </div>
-  </section>
-
-  <section aria-labelledby="h-assets">
-    <div class="sec-head">
-      <h2 id="h-assets">News pressure on each market</h2>
-      <span class="status">Tap a card to see which stories are moving it</span>
-    </div>
-    <div class="assets" id="assets"></div>
-    <div class="drawer panel" id="drawer" hidden>
-      <div class="drawer-head">
-        <div><h3 id="dr-title"></h3><span class="pressure" id="dr-label"></span></div>
-        <button class="btn" id="dr-close" aria-label="Close">Close</button>
-      </div>
-      <p class="dr-summary" id="dr-summary"></p>
-      <div class="drivers" id="dr-list"></div>
     </div>
   </section>
 
@@ -64,4 +65,4 @@
   </section>
 </div>
 {% endblock %}
-{% block scripts %}<script src="{{ asset('js/brief.js') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ asset('js/floor.js') }}"></script><script src="{{ asset('js/brief.js') }}"></script>{% endblock %}

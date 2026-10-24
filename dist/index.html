@@ -4,7 +4,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&family=Lalezar&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
   
   <link rel="stylesheet" href="static/css/main.css">
-  <link rel="stylesheet" href="static/css/brief.css">
+  <link rel="stylesheet" href="static/css/brief.css"><link rel="stylesheet" href="static/css/floor.css">
   <script>
     /* "server": Flask backend answers /api/*.  "static": hosted preview, AI falls back to Claude. */
     window.SITE_MODE = "static";
@@ -40,6 +40,70 @@
   <main class="main">
     
 <div class="wrap">
+  
+<section class="floor" id="floor" dir="ltr" aria-label="اتاق تحلیل هوش مصنوعی">
+  <div class="fl-top">
+    <div class="fl-brand"><i aria-hidden="true"></i>CRYPTOAI <span>×</span> FLOOR</div>
+    <div class="fl-stats">
+      <span>COINS<b id="fs-coins">24</b></span><span>PATTERNS<b id="fs-pat">–</b></span>
+      <span>NEWS 24H<b id="fs-news">–</b></span><span>POSTS<b id="fs-posts">–</b></span>
+      <span class="fl-live" id="fs-clock">LIVE</span>
+    </div>
+  </div>
+  <div class="fl-grid">
+    <aside class="fl-left">
+      <div class="fl-box">
+        <div class="fl-h"><span dir="auto">دقت پیش‌بینی جهت</span><span id="fa-src"></span></div>
+        <div class="fl-big" id="fa-rate">–</div>
+        <div dir="auto" class="fl-sub" id="fa-sub">در حال جمع‌آوری کارنامه…</div>
+      </div>
+      <div class="fl-pair">
+        <div class="fl-box"><div class="fl-h"><span dir="auto">داخل بازهٔ ۵۰٪</span></div><div class="fl-big" id="fa-50">–</div><div dir="auto" class="fl-sub">هدف ≈ ۵۰٪</div></div>
+        <div class="fl-box"><div class="fl-h"><span dir="auto">داخل بازهٔ ۹۰٪</span></div><div class="fl-big" id="fa-90">–</div><div dir="auto" class="fl-sub">هدف ≈ ۹۰٪</div></div>
+      </div>
+      <div class="fl-box">
+        <div class="fl-h"><span dir="auto">منحنی کارنامه</span><span>+1 / −1</span></div>
+        <canvas class="fl-curve" id="fa-curve" aria-label="جمع پیش‌بینی‌های درست منهای غلط"></canvas>
+      </div>
+      <div class="fl-box"><div class="fl-h"><span dir="auto">به تفکیک کوین</span></div><div class="fl-bars" id="fa-by"></div></div>
+    </aside>
+
+    <div class="fl-room">
+      <div class="fl-roomhead">
+        <div class="fl-h" style="margin:0"><span>◆ The analysis floor · اتاق تحلیل</span></div>
+        <div class="fl-coins" id="fl-coins" role="group" aria-label="کوین"></div>
+      </div>
+      <div class="fl-screen">
+        <div class="fl-shead"><span id="fl-sym">BTC/USDT</span><b id="fl-px">–</b><span id="fl-ch"></span><span class="fl-verdict" id="fl-vd">…</span></div>
+        <canvas class="fl-chart" id="fl-chart" aria-label="۷۲ ساعت اخیر با حمایت، مقاومت و محدودهٔ محتمل ۲۴ ساعت"></canvas>
+      </div>
+      <div class="fl-desks" id="fl-desks"></div>
+    </div>
+
+    <aside class="fl-box fl-log">
+      <div class="fl-h"><span dir="auto">Activity log · گزارش زنده</span><span id="fl-count"></span></div>
+      <div class="fl-rows" id="fl-rows" aria-live="polite"></div>
+    </aside>
+  </div>
+  <div class="fl-cards" id="fl-cards"></div>
+  <p class="fl-note" dir="rtl">کارنامه صادقانه است: بک‌تست، تشخیص موتور چارت برای BTC، ETH و SOL را در هر یک از ۳۰ روز گذشته دوباره اجرا می‌کند و با قیمت ۲۴ ساعت بعد مقایسه می‌کند؛ از امروز هم هر پیش‌بینی زنده (چارت + خبر) ثبت و ۲۴ ساعت بعد داوری می‌شود. این‌ها احتمال است نه قول، و هرگز سیگنال خرید/فروش یا نقطهٔ ورود نیست.</p>
+</section>
+  <section aria-labelledby="h-assets">
+    <div class="sec-head">
+      <h2 id="h-assets">فشار خبری روی هر بازار</h2>
+      <span class="status">روی هر کارت بزنید تا ببینید چه خبرهایی آن را حرکت داده‌اند</span>
+    </div>
+    <div class="assets" id="assets"></div>
+    <div class="drawer panel" id="drawer" hidden>
+      <div class="drawer-head">
+        <div><h3 id="dr-title"></h3><span class="pressure" id="dr-label"></span></div>
+        <button class="btn" id="dr-close" aria-label="بستن">بستن</button>
+      </div>
+      <p class="dr-summary" id="dr-summary"></p>
+      <div class="drivers" id="dr-list"></div>
+    </div>
+  </section>
+
   <section class="hero">
     <div class="hero-text">
       <span class="eyebrow"><span class="live-dot"></span> هوش بازار · زنده</span>
@@ -56,22 +120,6 @@
     </form>
     <div class="hero-meta">
       <span class="status" id="updated">در حال خواندن خبرهای تازه…</span>
-    </div>
-  </section>
-
-  <section aria-labelledby="h-assets">
-    <div class="sec-head">
-      <h2 id="h-assets">فشار خبری روی هر بازار</h2>
-      <span class="status">روی هر کارت بزنید تا ببینید چه خبرهایی آن را حرکت داده‌اند</span>
-    </div>
-    <div class="assets" id="assets"></div>
-    <div class="drawer panel" id="drawer" hidden>
-      <div class="drawer-head">
-        <div><h3 id="dr-title"></h3><span class="pressure" id="dr-label"></span></div>
-        <button class="btn" id="dr-close" aria-label="بستن">بستن</button>
-      </div>
-      <p class="dr-summary" id="dr-summary"></p>
-      <div class="drivers" id="dr-list"></div>
     </div>
   </section>
 
@@ -112,5 +160,5 @@
     });
   </script>
   <script src="static/js/market-bar.js"></script>
-  <script src="static/js/brief.js"></script>
+  <script src="static/js/floor.js"></script><script src="static/js/brief.js"></script>
 </div>
