@@ -166,6 +166,16 @@ def analysis_page():
     return page("analysis", "analysis.html")
 
 
+# ---------- Images for Instagram to fetch (one-time, one hour) ----------
+@app.route("/social/media/<key>.jpg")
+def social_media(key):
+    import social
+    data = social.media_get(key)
+    if not data:
+        return "", 404
+    return Response(data, mimetype="image/jpeg", headers={"Cache-Control": "no-store"})
+
+
 # ---------- Search: coins and news ----------
 @app.route("/search")
 def search_page():
@@ -325,7 +335,7 @@ def admin_page():
     if not is_admin():
         return page("admin", "login.html", error=error)
     import growth
-    return page("admin", "admin.html", bot=telegram_bot.status(), cfg=telegram_bot.cfg(), prostat=pro.stats(), grow=growth.stats())
+    return page("admin", "admin.html", bot=telegram_bot.status(), cfg=telegram_bot.cfg(), prostat=pro.stats(), grow=growth.stats(), soc=__import__("social").status())
 
 
 @app.route("/logout")

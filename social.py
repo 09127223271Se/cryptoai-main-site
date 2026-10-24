@@ -158,18 +158,125 @@ def _send_file(chat, png: bytes, name: str, cap: str = ""):
         raise RuntimeError(r.text[:200])
 
 
-def send_kit() -> str:
+# ------------------------------------------------------------------ Instagram auto-publishing
+# Instagram API with Instagram Login (professional account, no Facebook Page needed).
+# Render: INSTAGRAM_TOKEN = long-lived Instagram user access token (instagram_business_basic +
+# instagram_business_content_publish). The token is refreshed automatically before it expires (60 days)
+# and the fresh one is kept in the pinned backup. INSTAGRAM_AUTO=0 turns auto-posting off.
+IG = "https://graph.instagram.com/v22.0"
+_media: dict = {}          # one-time public image files for Meta to fetch: key -> (jpeg bytes, expires)
+
+
+def media_get(key: str):
+    item = _media.get(key)
+    if not item or item[1] < time.time():
+        return None
+    return item[0]
+
+
+def _host(png: bytes) -> str:
+    """Serve a JPEG at a public URL for one hour (Instagram fetches images by URL, JPEG only)."""
+    import secrets
+    im = Image.open(io.BytesIO(png)).convert("RGB")
+    out = io.BytesIO()
+    im.save(out, "JPEG", quality=92)
+    key = secrets.token_urlsafe(16)
+    for k in [k for k, v in _media.items() if v[1] < time.time()]:
+        _media.pop(k, None)
+    _media[key] = (out.getvalue(), time.time() + 3600)
+    return f"{pc.site_url()}/social/media/{key}.jpg"
+
+
+def ig_token() -> str:
+    import pro
+    return (pro.S.get("ig_token") or os.environ.get("INSTAGRAM_TOKEN", "")).strip()
+
+
+def ig_ready() -> bool:
+    return bool(ig_token()) and bool(pc.site_url()) and os.environ.get("INSTAGRAM_AUTO", "1") != "0"
+
+
+def _ig(method, path, **params):
+    import requests
+    params["access_token"] = ig_token()
+    r = (requests.post if method == "POST" else requests.get)(f"{IG}/{path}", params=params, timeout=60)
+    j = r.json()
+    if "error" in j:
+        raise RuntimeError(j["error"].get("message", str(j["error"]))[:200])
+    return j
+
+
+def ig_refresh():
+    """Long-lived tokens last 60 days; refresh once a week so it never runs out."""
+    import pro
+    import requests
+    if not ig_token() or time.time() - pro.S.get("ig_refreshed", 0) < 7 * 24 * 3600:
+        return
+    try:
+        r = requests.get("https://graph.instagram.com/refresh_access_token",
+                         params={"grant_type": "ig_refresh_token", "access_token": ig_token()}, timeout=30).json()
+        if r.get("access_token"):
+            pro.S["ig_token"], pro.S["ig_refreshed"] = r["access_token"], time.time()
+            pro.backup()
+    except Exception as e:
+        _rt["last_error"] = f"ig refresh: {e}"[:150]
+
+
+def ig_publish(png: bytes, caption_text: str = "", story: bool = False) -> str:
+    params = {"image_url": _host(png)}
+    if story:
+        params["media_type"] = "STORIES"
+    else:
+        params["caption"] = caption_text[:2200]
+    cid = _ig("POST", "me/media", **params)["id"]
+    for _ in range(20):               # wait until Instagram has processed the image
+        st = _ig("GET", cid, fields="status_code").get("status_code")
+        if st in (None, "FINISHED"):
+            break
+        if st == "ERROR":
+            raise RuntimeError("instagram could not process the image")
+        time.sleep(3)
+    return _ig("POST", "me/media_publish", creation_id=cid)["id"]
+
+
+def instagram_daily(n: dict, assets: list) -> str:
+    lang = os.environ.get("INSTAGRAM_LANG", "fa")
+    card = pc.render_card(n, assets, lang)
+    done = []
+    try:
+        ig_publish(compose(card, n, lang, 1080, 1080), caption(n, assets, lang))
+        done.append("پست")
+    except Exception as e:
+        _rt["last_error"] = f"ig post: {e}"[:150]
+    try:
+        ig_publish(compose(card, n, lang, 1080, 1920), story=True)
+        done.append("استوری")
+    except Exception as e:
+        _rt["last_error"] = f"ig story: {e}"[:150]
+    return " و ".join(done)
+
+
+def pick_story():
     import news_live
     b = news_live.get_brief()
     feed, assets = b.get("feed") or [], b.get("assets") or []
     now = time.time()
     cand = [x for x in feed if now - (x.get("ts") or 0) < 24 * 3600 and [i for i in x.get("im") or [] if i.get("d")]]
     cand.sort(key=lambda x: (-(x.get("imp") or 1), -len(x.get("im") or []), -(x.get("ts") or 0)))
-    if not cand:
+    return (cand[0] if cand else None), assets
+
+
+def send_kit() -> str:
+    n, assets = pick_story()
+    if not n:
         return "خبر مهمی در ۲۴ ساعت اخیر برای بستهٔ شبکه‌های اجتماعی نبود."
-    n = cand[0]
     admin = tb.cfg()["admin"]
-    tb.call("sendMessage", chat_id=admin, text="📲 بستهٔ امروز اینستاگرام و تیک‌تاک (فارسی و انگلیسی). فایل‌ها را ذخیره و پست کنید؛ کپشن زیر هر بسته است.")
+    ig_note = ""
+    if ig_ready():
+        posted = instagram_daily(n, assets)
+        ig_note = (f"✅ اینستاگرام خودکار: {posted} منتشر شد.\n" if posted else
+                   f"⚠️ انتشار خودکار اینستاگرام نشد: {_rt['last_error']}\n")
+    tb.call("sendMessage", chat_id=admin, text=ig_note + "📲 بستهٔ امروز (فارسی و انگلیسی) برای تیک‌تاک و هر جای دیگر؛ کپشن زیر هر بسته است.")
     for lang in ("fa", "en"):
         card = pc.render_card(n, assets, lang)
         _send_file(admin, compose(card, n, lang, 1080, 1080), f"cryptoai-{lang}-post-1080x1080.png", "Instagram post" if lang == "en" else "پست اینستاگرام (مربعی)")
@@ -189,3 +296,9 @@ def tick():
             send_kit()
         except Exception as e:
             _rt["last_error"] = str(e)[:150]
+    if now.minute == 7:
+        ig_refresh()
+
+
+def status() -> dict:
+    return {"instagram": ig_ready(), "last_error": _rt["last_error"]}

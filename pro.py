@@ -59,7 +59,7 @@ def ready() -> bool:
 # ------------------------------------------------------------------ backup / restore (pinned in admin chat)
 def _snapshot() -> dict:
     with _lock:
-        return {k: S[k] for k in ("members", "orders", "stars_link", "alerted", "brief_day", "revenue_usdt", "posted_urls", "growth") if k in S}
+        return {k: S[k] for k in ("members", "orders", "stars_link", "alerted", "brief_day", "revenue_usdt", "posted_urls", "growth", "ig_token", "ig_refreshed") if k in S}
 
 
 def backup():
@@ -104,7 +104,7 @@ def restore():
         data = json.loads(raw)
         with _lock:
             S["backup_msg"] = (chat.get("pinned_message") or {}).get("message_id")
-            for k in ("members", "orders", "stars_link", "alerted", "brief_day", "revenue_usdt", "posted_urls", "growth"):
+            for k in ("members", "orders", "stars_link", "alerted", "brief_day", "revenue_usdt", "posted_urls", "growth", "ig_token", "ig_refreshed"):
                 if k in data:
                     S[k] = data[k]
     except Exception as e:

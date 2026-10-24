@@ -67,6 +67,14 @@
     </div>
   </section>
 
+  <section class="panel">
+    <div class="ph"><h2>اینستاگرام خودکار</h2>{% if soc.instagram %}<span class="pill live">فعال</span>{% else %}<span class="pill warn">نیاز به تنظیم</span>{% endif %}</div>
+    <div class="pb">
+      <p class="status">هر روز ساعت ۱۶:۰۰ UTC یک پست و یک استوری از مهم‌ترین خبر روز خودکار در اینستاگرام منتشر می‌شود (INSTAGRAM_TOKEN در Render). به ربات بنویسید /kit تا همین الان انجام شود.</p>
+      {% if soc.last_error %}<p class="status" style="color:var(--down)">آخرین خطا: {{ soc.last_error }}</p>{% endif %}
+    </div>
+  </section>
+
   {% if bot.posted %}
   <section class="panel">
     <div class="ph"><h2>آخرین پست‌های منتشرشده</h2></div>
