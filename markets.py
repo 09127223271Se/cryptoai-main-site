@@ -24,9 +24,17 @@ TTL = 60
 
 
 def _yahoo(sym):
-    r = requests.get(f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}", params={"range": "5d", "interval": "1d"},
-                     headers=UA, timeout=10)
-    r.raise_for_status()
+    r = None
+    for host in ("query1", "query2"):
+        try:
+            r = requests.get(f"https://{host}.finance.yahoo.com/v8/finance/chart/{sym}", params={"range": "5d", "interval": "1d"},
+                             headers=UA, timeout=10)
+            r.raise_for_status()
+            break
+        except Exception:
+            r = None
+    if r is None:
+        raise RuntimeError("yahoo unreachable")
     m = r.json()["chart"]["result"][0]["meta"]
     price, prev = float(m["regularMarketPrice"]), float(m.get("chartPreviousClose") or m.get("previousClose") or 0)
     return {"price": price, "chg24h": (price / prev - 1) if prev else None, "source": "Yahoo Finance"}
@@ -89,6 +97,14 @@ def _dominance_paprika():
     }
 
 
+# key: (Yahoo symbol, Stooq fallback symbol)
+INDICES = {
+    "spx": ("^GSPC", "^spx"), "ndx": ("^IXIC", "^ndq"), "dji": ("^DJI", "^dji"), "vix": ("^VIX", None),
+    "dxy": ("DX-Y.NYB", "dx.f"), "us10y": ("^TNX", None), "ftse": ("^FTSE", "^ukx"),
+    "bist": ("XU100.IS", None), "usdtry": ("TRY=X", "usdtry"),
+}
+
+
 def _build():
     out = {"fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
     jobs = {
@@ -98,7 +114,9 @@ def _build():
         "brent": lambda: _first(lambda: _yahoo("BZ=F"), lambda: _stooq("cb.f")),
         "dominance": lambda: _first(_dominance_coingecko, _dominance_paprika),
     }
-    with ThreadPoolExecutor(max_workers=5) as ex:
+    for key, (ysym, ssym) in INDICES.items():
+        jobs[key] = (lambda y=ysym, st=ssym: _first(lambda: _yahoo(y), (lambda: _stooq(st)) if st else (lambda: None)))
+    with ThreadPoolExecutor(max_workers=8) as ex:
         futs = {k: ex.submit(fn) for k, fn in jobs.items()}
         for k, f in futs.items():
             out[k] = f.result()
@@ -127,6 +145,12 @@ def hint() -> str:
     except Exception:
         return ""
     parts = []
+    names = {"spx": "S&P 500", "ndx": "Nasdaq", "dji": "Dow", "vix": "VIX", "dxy": "DXY", "us10y": "US 10y yield %", "ftse": "FTSE 100", "bist": "BIST 100", "usdtry": "USD/TRY"}
+    for k, label in names.items():
+        v = m.get(k)
+        if v and v.get("price") is not None:
+            ch = f" ({v['chg24h'] * 100:+.2f}%)" if v.get("chg24h") is not None else ""
+            parts.append(f"{label} {v['price']:,.2f}{ch}")
     if m.get("gold"):
         parts.append(f"gold {m['gold']['price']:,.0f} USD/oz")
     if m.get("wti"):

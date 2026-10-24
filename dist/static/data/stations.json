@@ -21,7 +21,7 @@
    "id": "nyc",
    "fa": "نیویورک",
    "en": "New York",
-   "country": "آمریکا · وال‌استریت",
+   "country": "آمریکا · وال‌استریت، S&P 500، ETFها",
    "lat": 40.71,
    "lon": -74,
    "freq": "81.5",
@@ -90,7 +90,7 @@
    "id": "dc",
    "fa": "واشنگتن",
    "en": "Washington",
-   "country": "آمریکا · فدرال رزرو و SEC",
+   "country": "آمریکا · فدرال رزرو، SEC، کنگره",
    "lat": 38.9,
    "lon": -77.04,
    "freq": "94.2",
@@ -325,7 +325,7 @@
    "id": "dubai",
    "fa": "دبی",
    "en": "Dubai",
-   "country": "امارات",
+   "country": "امارات · خاورمیانه و نفت",
    "lat": 25.2,
    "lon": 55.27,
    "freq": "99.3",
@@ -400,7 +400,7 @@
    "id": "london",
    "fa": "لندن",
    "en": "London",
-   "country": "بریتانیا",
+   "country": "بریتانیا · بانک انگلستان، FTSE",
    "lat": 51.51,
    "lon": -0.13,
    "freq": "98.6",
@@ -575,6 +575,30 @@
     }
    ],
    "tz": "Africa/Nairobi"
+  },
+  {
+   "id": "istanbul",
+   "fa": "استانبول",
+   "en": "Istanbul",
+   "country": "ترکیه · لیر و بورس استانبول",
+   "lat": 41.01,
+   "lon": 28.98,
+   "freq": "96.4",
+   "tz": "Europe/Istanbul",
+   "news": [],
+   "notes": []
+  },
+  {
+   "id": "frankfurt",
+   "fa": "فرانکفورت",
+   "en": "Frankfurt",
+   "country": "آلمان · بانک مرکزی اروپا",
+   "lat": 50.11,
+   "lon": 8.68,
+   "freq": "92.1",
+   "tz": "Europe/Berlin",
+   "news": [],
+   "notes": []
   }
  ]
 }

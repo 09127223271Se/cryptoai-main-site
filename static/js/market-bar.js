@@ -3,7 +3,8 @@
   const bar = document.getElementById("mbar");
   if (!bar || window.SITE_MODE !== "server") { if (bar) bar.hidden = true; return; }
   const ITEMS = [
-    ["gold", "طلا · اونس"], ["wti", "نفت WTI"], ["brent", "نفت برنت"],
+    ["spx", "S&P 500"], ["ndx", "نزدک"], ["dji", "داو جونز"], ["vix", "VIX · ترس"], ["dxy", "شاخص دلار"], ["us10y", "بازده ۱۰ ساله آمریکا"],
+    ["gold", "طلا · اونس"], ["wti", "نفت WTI"], ["brent", "نفت برنت"], ["ftse", "FTSE لندن"], ["bist", "بورس استانبول"], ["usdtry", "دلار/لیر"],
     ["total", "ارزش کل کریپتو"], ["btcd", "دامیننس BTC"], ["ethd", "دامیننس ETH"],
     ["usdtd", "دامیننس USDT"], ["usdcd", "دامیننس USDC"], ["stablesd", "دامیننس استیبل‌ها"], ["othersd", "دامیننس Others"]
   ];
@@ -33,6 +34,13 @@
       if (m.gold && !goldLive) set("gold", usd(m.gold.price), m.gold.chg24h, m.gold.source);
       if (m.wti) set("wti", usd(m.wti.price), m.wti.chg24h, m.wti.source + " · قراردادهای آتی، تأخیر بورس حدود ۱۰ دقیقه"); else set("wti", null);
       if (m.brent) set("brent", usd(m.brent.price), m.brent.chg24h, m.brent.source + " · قراردادهای آتی، تأخیر بورس حدود ۱۰ دقیقه"); else set("brent", null);
+      const IDX = { spx: 2, ndx: 2, dji: 2, vix: 2, dxy: 2, us10y: 3, ftse: 2, bist: 2, usdtry: 4 };
+      for (const [k, dec] of Object.entries(IDX)) {
+        const v = m[k];
+        if (!v) { set(k, null); continue; }
+        const txt = k === "us10y" ? v.price.toFixed(dec) + "%" : v.price.toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+        set(k, txt, v.chg24h, v.source + " · تأخیر بورس ممکن است تا ۱۵ دقیقه باشد");
+      }
       const d = m.dominance;
       if (d) {
         const pc = v => v == null ? null : v.toFixed(2) + "%";

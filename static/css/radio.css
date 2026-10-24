@@ -52,3 +52,7 @@
 .note p{font-size:13.5px}
 .note small{color:var(--muted);font-size:12px}
 @media (prefers-reduced-motion: reduce){.eq.on i{height:14px}}
+
+.item .kind{font-size:11px;padding:0 7px;border-radius:999px;border:1px solid var(--line)}
+.item .kind.official{color:var(--brand);border-color:rgba(34,211,238,.45)}
+.item .kind.macro{color:var(--signal);border-color:rgba(255,201,77,.45)}

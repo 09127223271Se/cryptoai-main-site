@@ -356,6 +356,7 @@ function renderSheet(s) {
     if (n.lang === "en") { d.querySelector("b").dir = "ltr"; d.querySelector("p").dir = "ltr"; }
     d.querySelector("b").textContent = n.t; d.querySelector("p").textContent = n.b; d.querySelector(".num").textContent = n.d;
     if (n.ts) { const ag = d.querySelector(".ago"); ag.dataset.ts = n.ts; ag.textContent = ago(n.ts); }
+    if (n.kind === "official" || n.kind === "macro") { const k = document.createElement("span"); k.className = "kind " + n.kind; k.textContent = n.kind === "official" ? "منبع رسمی" : "اقتصاد کلان"; d.querySelector(".meta").prepend(k); }
     const a = d.querySelector("a"); a.textContent = n.source.name; a.href = n.source.url; nb.append(d);
   });
   if (s.live) renderNotes(s.notes, s.notes.length ? "تحلیل هوش مصنوعی روی خبرهای زنده" : "برای این خبرها هنوز تحلیلی نیامده؛ «تحلیل دوباره» را بزنید.");
