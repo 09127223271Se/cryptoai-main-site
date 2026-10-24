@@ -68,10 +68,13 @@ EXCLUDE = ["enforcement action", "termination of", "civil money penalty", "prohi
 RELEVANT = ["crypto", "bitcoin", "btc", "ether", "stablecoin", "digital asset", "token", "blockchain", "etf",
             "fed ", "federal reserve", "fomc", "powell", "interest rate", "rate cut", "rate hike", "rates", "monetary policy",
             "inflation", "cpi", "pce", "jobs report", "payroll", "unemployment", "gdp", "recession", "treasury", "yield", "bond",
-            "dollar", "currency", "s&p", "nasdaq", "dow", "stocks", "stock market", "wall street", "equities", "earnings",
+            "dollar", "currency", "s&p", "nasdaq", "dow", "stocks", "stock", "shares", "markets", "investors", "record high", "stock market", "wall street", "equities", "earnings",
             "oil", "crude", "opec", "brent", "gold", "tariff", "trade war", "sanction", "central bank", "ecb", "lagarde",
             "bank of england", "boe", "bailey", "ftse", "pound", "sterling", "lira", "turkey", "turkish", "erdogan", "borsa",
             "bank of japan", "boj", "yen", "pboc", "yuan", "hang seng", "nikkei", "speech", "statement", "testimony"]
+_REL_RE = re.compile(r"\b(" + "|".join(re.escape(w.strip()) for w in RELEVANT if w not in ("speech", "statement", "testimony")) + r")\b")
+OFF_TOPIC_URL = ["/make-it/", "/health", "/lifestyle", "/travel", "/sports", "/entertainment", "/personal-finance/"]
+EXCLUDE += ["vaccine", "cancer", "peptide", "diet", "recipe", "wellness", "dating", "nfl", "nba"]
 UA = {"User-Agent": "Mozilla/5.0 (compatible; CryptoAI-Radio/1.0)"}
 
 # First match wins: specific places before topic-based desks.
@@ -147,10 +150,17 @@ def _fetch_feed(feed):
                 continue
             desc = _clean(_text(it, "description") or _text(it, atom + "summary") or _text(it, atom + "content"), 300)
             if kind != "crypto":
-                hay = " " + (title + " " + desc).lower() + " "
-                words = OFFICIAL_RELEVANT if kind == "official" else RELEVANT
-                if not any(w in hay for w in words) or any(w in hay for w in EXCLUDE):
+                hay = (title + " " + desc).lower()
+                if any(w in hay for w in EXCLUDE) or any(u in link for u in OFF_TOPIC_URL):
                     continue
+                if kind == "official":
+                    if not any(w in hay for w in OFFICIAL_RELEVANT):
+                        continue
+                else:
+                    # whole words only ("dow" must not match "down", "ether" not "whether");
+                    # a market word in the headline, or at least two in the summary
+                    if not (_REL_RE.search(title.lower()) or len(set(_REL_RE.findall(desc.lower()))) >= 2):
+                        continue
             out.append({"title": title, "desc": desc, "url": link, "ts": ts, "source": name, "kind": kind, "fixed": fixed})
         return name, out
     except Exception:
