@@ -13,7 +13,13 @@
     }
     return samplePromise;
   }
-  const ERR = {
+  const EN = window.LANG === "en";
+  const ERR = EN ? {
+    not_granted: "Permission to use Claude was not granted.", sampling_disabled: "Claude is not enabled for this account.",
+    rate_limited: "Too many requests; please try again shortly.", session_expired: "Please sign in again.",
+    invalid_json: "The AI answer could not be read; please try again.", image_rejected: "This image could not be read; try another one.",
+    no_ai: "AI is not available right now.", cancelled: "Stopped."
+  } : {
     not_granted: "اجازهٔ استفاده از Claude داده نشد.",
     sampling_disabled: "Claude برای این حساب فعال نیست.",
     rate_limited: "درخواست زیاد بود؛ کمی بعد دوباره امتحان کنید.",
@@ -31,18 +37,18 @@
     throw { code: "invalid_json" };
   }
   const AI = {
-    errorText(e) { return ERR[e && e.code] || (e && e.message) || "خطا در ارتباط؛ دوباره امتحان کنید."; },
+    errorText(e) { return ERR[e && e.code] || (e && e.message) || (EN ? "Connection error; please try again." : "خطا در ارتباط؛ دوباره امتحان کنید."); },
     async status() {
       if (window.SITE_MODE === "server") {
         try {
           const r = await fetch(base() + "/api/ai/status"); const j = await r.json();
-          return { ok: !!j.ok, images: !!j.images, label: j.ok ? "هوش مصنوعی: " + j.provider : "سرور آنلاین · بدون کلید AI" };
-        } catch (e) { return { ok: false, images: false, label: "سرور در دسترس نیست" }; }
+          return { ok: !!j.ok, images: !!j.images, label: j.ok ? (EN ? "AI: " : "هوش مصنوعی: ") + j.provider : (EN ? "Server online · no AI key" : "سرور آنلاین · بدون کلید AI") };
+        } catch (e) { return { ok: false, images: false, label: EN ? "Server unavailable" : "سرور در دسترس نیست" }; }
       }
       const s = await sample();
-      if (!s) return { ok: false, images: false, label: "پیش‌نمایش · بدون AI" };
+      if (!s) return { ok: false, images: false, label: EN ? "Preview · no AI" : "پیش‌نمایش · بدون AI" };
       const lim = await s.limits().catch(() => null);
-      return { ok: true, images: !!(lim && lim.images), label: "هوش مصنوعی: Claude" };
+      return { ok: true, images: !!(lim && lim.images), label: (EN ? "AI: " : "هوش مصنوعی: ") + "Claude" };
     },
     async ask(prompt, opts = {}) {
       if (window.SITE_MODE === "server") {

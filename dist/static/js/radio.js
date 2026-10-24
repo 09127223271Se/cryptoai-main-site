@@ -2,29 +2,54 @@
 (async () => {
 "use strict";
 const $ = id => document.getElementById(id);
+const EN = window.LANG === "en";
+const TXT = EN ? {
+  fail: "Station data could not be loaded", now: "just now", min: " min ago", hr: " h ago", day: " d ago", loc: "en-GB",
+  live: t => `Live news from around the world · last update ${t}`, refreshing: "Fetching live news… showing saved news meanwhile.",
+  saved: (a, b) => `Crypto news from every corner of the world · as of ${b}`, connecting: "Connecting to the exchange…",
+  liveP: "● Live prices", noLive: "Live prices unavailable", savedP: "Saved prices", yourClock: "Your time ", localClock: n => `Local time in ${n}: `,
+  stop: "Stop", play: "Play", preparing: "Preparing the announcer's voice…", anchor: "Announcer: Emma", noSpeech: "This browser cannot play speech.",
+  playing: "Playing", playingEn: "Playing in English", dir: { up: "Likely positive effect", down: "Likely negative effect", mixed: "Two-sided or unclear effect" },
+  radio: "Crypto Radio ", official: "Official source", macro: "Macro", soon: "Analysis of these headlines will be ready in a moment.",
+  analysing: "Analysing…", noNotes: "The AI returned no notes."
+} : {
+  fail: "داده‌های ایستگاه بارگذاری نشد", now: "همین الان", min: " دقیقه پیش", hr: " ساعت پیش", day: " روز پیش", loc: "fa-IR",
+  live: t => `خبرهای زنده از سراسر دنیا · آخرین به‌روزرسانی ${t}`, refreshing: "در حال گرفتن خبرهای زنده… تا آن موقع خبرهای ذخیره‌شده نمایش داده می‌شوند.",
+  saved: (a, b) => `اخبار کریپتو از هر گوشهٔ دنیا · به‌روز تا ${a} (${b})`, connecting: "در حال اتصال به صرافی…",
+  liveP: "● قیمت لحظه‌ای", noLive: "قیمت لحظه‌ای در دسترس نیست", savedP: "قیمت‌های ذخیره‌شده", yourClock: "ساعت شما ", localClock: n => "ساعت محلی " + n + ": ",
+  stop: "توقف", play: "پخش", preparing: "در حال آماده‌سازی صدای گوینده…", anchor: "گوینده: دلارا", noSpeech: "این مرورگر پخش صدا را پشتیبانی نمی‌کند.",
+  playing: "در حال پخش", playingEn: "پخش به انگلیسی", dir: { up: "احتمال اثر مثبت", down: "احتمال اثر منفی", mixed: "اثر دوطرفه یا نامشخص" },
+  radio: "رادیو کریپتو ", official: "منبع رسمی", macro: "اقتصاد کلان", soon: "تحلیل این خبرها چند لحظهٔ دیگر آماده می‌شود.",
+  analysing: "در حال تحلیل…", noNotes: "هوش مصنوعی نکته‌ای برنگرداند."
+};
+const SN = s => EN ? s.en : s.fa;                       // station name
+const NT = n => EN ? (n.en_t || (n.en || "").split(". ")[0] || n.t) : n.t;   // news title
+const NB = n => EN ? (n.en_b != null ? n.en_b : (n.en || "").split(". ").slice(1).join(". ")) : n.b;
+const NOTE = n => EN ? (n.ne || "") : (n.n || "");
+const NOTEW = n => EN ? (n.we || "") : (n.w || "");
 
 /* ---------------- data ---------------- */
 let DATA;
 const dataUrl = window.SITE_MODE === "server" ? (window.API_BASE + "/api/stations") : (window.ASSET_BASE + "data/stations.json");
 try { DATA = await (await fetch(dataUrl)).json(); }
-catch (e) { $("st-name").textContent = "داده‌های ایستگاه بارگذاری نشد"; return; }
+catch (e) { $("st-name").textContent = TXT.fail; return; }
 let STATIONS = DATA.stations.filter(s => s.news && s.news.length);
-const faTime = (d, tz, sec) => new Intl.DateTimeFormat("fa-IR", { hour: "2-digit", minute: "2-digit", second: sec ? "2-digit" : undefined, hour12: false, timeZone: tz }).format(d);
+const faTime = (d, tz, sec) => new Intl.DateTimeFormat(TXT.loc, { hour: "2-digit", minute: "2-digit", second: sec ? "2-digit" : undefined, hour12: false, timeZone: tz }).format(d);
 function ago(ts) {
   const m = Math.max(0, Math.round((Date.now() / 1000 - ts) / 60));
-  if (m < 1) return "همین الان"; if (m < 60) return m.toLocaleString("fa-IR") + " دقیقه پیش";
-  const h = Math.floor(m / 60); if (h < 24) return h.toLocaleString("fa-IR") + " ساعت پیش";
-  return Math.floor(h / 24).toLocaleString("fa-IR") + " روز پیش";
+  if (m < 1) return TXT.now; if (m < 60) return m.toLocaleString(TXT.loc) + TXT.min;
+  const h = Math.floor(m / 60); if (h < 24) return h.toLocaleString(TXT.loc) + TXT.hr;
+  return Math.floor(h / 24).toLocaleString(TXT.loc) + TXT.day;
 }
 function renderUpdated() {
   const el = $("updated");
   if (DATA.live) {
     const t = new Date(DATA.updated);
-    el.textContent = `خبرهای زنده از سراسر دنیا · آخرین به‌روزرسانی ${faTime(t, undefined, false)}`;
+    el.textContent = TXT.live(faTime(t, undefined, false));
   } else if (DATA.refreshing) {
-    el.textContent = "در حال گرفتن خبرهای زنده… تا آن موقع خبرهای ذخیره‌شده نمایش داده می‌شوند.";
+    el.textContent = TXT.refreshing;
   } else {
-    el.textContent = `اخبار کریپتو از هر گوشهٔ دنیا · به‌روز تا ${DATA.updated_fa} (${DATA.updated})`;
+    el.textContent = TXT.saved(DATA.updated_fa, DATA.updated);
   }
 }
 renderUpdated();
@@ -39,7 +64,7 @@ TICK.forEach(c => {
   s.innerHTML = `${c} <b class="num">…</b> <small class="num"></small>`;
   tk.append(s); pills[c] = s;
 });
-const srcPill = document.createElement("span"); srcPill.className = "pill"; srcPill.textContent = "در حال اتصال به صرافی…"; tk.append(srcPill);
+const srcPill = document.createElement("span"); srcPill.className = "pill"; srcPill.textContent = TXT.connecting; tk.append(srcPill);
 const clockPill = document.createElement("span");
 const marketNow = {};
 if (window.SITE_MODE === "server") {
@@ -52,15 +77,15 @@ if (window.SITE_MODE === "server") {
     const sm = s.querySelector("small");
     if (isFinite(v.chg24h)) { sm.textContent = (v.chg24h >= 0 ? "+" : "") + (v.chg24h * 100).toFixed(2) + "%"; sm.style.color = v.chg24h >= 0 ? "var(--up)" : "var(--down)"; }
     s.className = "pill live";
-  }, st => { srcPill.textContent = st.live ? "● قیمت لحظه‌ای" : "قیمت لحظه‌ای در دسترس نیست"; srcPill.style.color = st.live ? "var(--up)" : ""; });
+  }, st => { srcPill.textContent = st.live ? TXT.liveP : TXT.noLive; srcPill.style.color = st.live ? "var(--up)" : ""; });
 } else {
   (DATA.market || []).forEach(m => { if (pills[m.c]) { pills[m.c].querySelector("b").textContent = "≈ " + m.p; pills[m.c].querySelector("small").textContent = DATA.market_date || ""; } });
-  srcPill.textContent = "قیمت‌های ذخیره‌شده";
+  srcPill.textContent = TXT.savedP;
 }
 function tickClock() {
   const now = new Date();
-  clockPill.textContent = "ساعت شما " + faTime(now, undefined, true);
-  if (selected) $("st-clock").textContent = "ساعت محلی " + selected.fa + ": " + faTime(now, selected.tz, true);
+  clockPill.textContent = TXT.yourClock + faTime(now, undefined, true);
+  if (selected) $("st-clock").textContent = TXT.localClock(SN(selected)) + faTime(now, selected.tz, true);
   document.querySelectorAll("#news .ago").forEach(el => { el.textContent = ago(+el.dataset.ts); });
 }
 
@@ -218,8 +243,8 @@ function draw(now) {
     ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(20,12,0,.7)"; ctx.stroke();
     if (sel || scaleK > 1.4) {
       ctx.font = "700 12.5px Vazirmatn, Tahoma, sans-serif"; ctx.textAlign = "center";
-      ctx.lineWidth = 3.5; ctx.strokeStyle = "rgba(5,9,19,.85)"; ctx.strokeText(s.fa, x, y - 15);
-      ctx.fillStyle = "#fff"; ctx.fillText(s.fa, x, y - 15);
+      ctx.lineWidth = 3.5; ctx.strokeStyle = "rgba(5,9,19,.85)"; ctx.strokeText(SN(s), x, y - 15);
+      ctx.fillStyle = "#fff"; ctx.fillText(SN(s), x, y - 15);
     }
   }
 }
@@ -277,11 +302,11 @@ const audio = new Audio(); audio.preload = "auto";
 function loadVoices() { if (synth) voices = synth.getVoices() || []; }
 if (synth) { loadVoices(); synth.onvoiceschanged = loadVoices; }
 function pickVoice() { const fa = voices.find(v => /^fa/i.test(v.lang)); if (fa) return { v: fa, lang: "fa" }; const en = voices.find(v => /^en/i.test(v.lang)); return { v: en || null, lang: "en" }; }
-function setPlaying(on) { playing = on; $("ic-play").hidden = on; $("ic-pause").hidden = !on; $("eq").classList.toggle("on", on); $("play").setAttribute("aria-label", on ? "توقف" : "پخش"); }
+function setPlaying(on) { playing = on; $("ic-play").hidden = on; $("ic-pause").hidden = !on; $("eq").classList.toggle("on", on); $("play").setAttribute("aria-label", on ? TXT.stop : TXT.play); }
 function clearLive() { document.querySelectorAll(".item.live").forEach(x => x.classList.remove("live")); }
 function markLive(i) { document.querySelectorAll(".item").forEach((x, j) => x.classList.toggle("live", j === i)); }
 function stopSpeech() { playToken++; try { audio.pause(); audio.removeAttribute("src"); } catch (e) {} if (synth) synth.cancel(); setPlaying(false); clearLive(); }
-const ttsUrl = (s, i) => `${window.API_BASE}/api/tts?sid=${encodeURIComponent(s.id)}&i=${i}&v=${encodeURIComponent(DATA.updated || "")}`;
+const ttsUrl = (s, i) => `${window.API_BASE}/api/tts?sid=${encodeURIComponent(s.id)}&i=${i}&l=${EN ? "en" : "fa"}&v=${encodeURIComponent(DATA.updated || "")}`;
 
 function playUrl(url, token) {
   return new Promise((resolve, reject) => {
@@ -294,7 +319,7 @@ function playUrl(url, token) {
 }
 async function speakNeural(s) {
   const token = ++playToken;
-  setPlaying(true); $("voice").textContent = "در حال آماده‌سازی صدای گوینده…";
+  setPlaying(true); $("voice").textContent = TXT.preparing;
   const order = [-1, ...s.news.map((_, i) => i)];
   for (let k = 0; k < order.length; k++) {
     if (token !== playToken) return true;
@@ -302,19 +327,20 @@ async function speakNeural(s) {
     if (k + 1 < order.length) { const pre = new Audio(); pre.preload = "auto"; pre.src = ttsUrl(s, order[k + 1]); }  // warm the next item
     markLive(i);
     await playUrl(ttsUrl(s, i), token);
-    if (k === 0) $("voice").textContent = "گوینده: دلارا";
+    if (k === 0) $("voice").textContent = TXT.anchor;
   }
   if (token === playToken) { setPlaying(false); clearLive(); }
   return true;
 }
 function speakDevice(s) {
-  if (!synth) { $("voice").textContent = "این مرورگر پخش صدا را پشتیبانی نمی‌کند."; setPlaying(false); return; }
+  if (!synth) { $("voice").textContent = TXT.noSpeech; setPlaying(false); return; }
   synth.cancel(); loadVoices();
-  const pv = pickVoice();
-  $("voice").textContent = pv.lang === "fa" ? "در حال پخش" : "پخش به انگلیسی";
+  const pv = EN ? { v: voices.find(v => /^en/i.test(v.lang)) || null, lang: "en" } : pickVoice();
+  $("voice").textContent = pv.lang === "fa" ? TXT.playing : (EN ? TXT.playing : TXT.playingEn);
   const parts = [{ txt: pv.lang === "fa" ? `این‌جا رادیو کریپتو، ${s.fa}.` : `This is Crypto Radio, ${s.en}.`, i: -1 }];
   s.news.forEach((n, i) => parts.push({ txt: pv.lang === "fa" && n.lang !== "en" ? n.t + ". " + n.b : n.en, i }));
   setPlaying(true);
+  if (EN) { parts.length = 0; parts.push({ txt: `This is Crypto Radio, ${s.en}.`, i: -1 }); s.news.forEach((n, i) => parts.push({ txt: n.en, i })); }
   parts.forEach((p, k) => {
     const u = new SpeechSynthesisUtterance(p.txt); u.lang = pv.lang === "fa" ? "fa-IR" : "en-US"; if (pv.v) u.voice = pv.v; u.rate = 0.92; u.pitch = 0.95;
     u.onstart = () => markLive(p.i);
@@ -332,34 +358,34 @@ async function speakStation(s) {
 $("play").onclick = () => { if (!selected) return; if (playing) stopSpeech(); else speakStation(selected); };
 
 /* ---------------- sheet ---------------- */
-const ARW = { up: "↑", down: "↓", mixed: "↕" }, DIRFA = { up: "احتمال اثر مثبت", down: "احتمال اثر منفی", mixed: "اثر دوطرفه یا نامشخص" };
+const ARW = { up: "↑", down: "↓", mixed: "↕" }, DIRFA = TXT.dir;
 function renderNotes(list, label) {
   const nb = $("notes"); nb.textContent = "";
-  list.forEach(n => {
+  list.filter(n => NOTE(n)).forEach(n => {
     const d = document.createElement("div"); d.className = "note";
     const dir = ["up", "down", "mixed"].includes(n.dir) ? n.dir : "mixed";
     d.innerHTML = `<span class="arrow ${dir}" aria-label="${DIRFA[dir]}">${ARW[dir]}</span><div><div class="coins"></div><p></p><small></small></div>`;
     const cs = d.querySelector(".coins"); (n.c || []).forEach(c => { const s = document.createElement("span"); s.className = "coin"; s.textContent = String(c); cs.append(s); });
-    d.querySelector("p").textContent = n.n || ""; d.querySelector("small").textContent = n.w || "";
+    d.querySelector("p").textContent = NOTE(n); d.querySelector("small").textContent = NOTEW(n);
     nb.append(d);
   });
   $("ai-s").textContent = label || "";
 }
 function renderSheet(s) {
   $("freq").textContent = `CRYPTO FM ${s.freq} · ${s.lat.toFixed(2)}°, ${s.lon.toFixed(2)}°`;
-  $("st-name").textContent = "رادیو کریپتو " + s.fa;
-  $("st-where").textContent = s.country;
+  $("st-name").textContent = TXT.radio + SN(s);
+  $("st-where").textContent = EN ? (s.country_en || "") : s.country;
   const nb = $("news"); nb.textContent = "";
   s.news.forEach(n => {
     const d = document.createElement("div"); d.className = "item";
     d.innerHTML = `<b></b><p></p><div class="meta"><span class="num"></span><span class="ago"></span><a target="_blank" rel="noopener"></a></div>`;
-    if (n.lang === "en") { d.querySelector("b").dir = "ltr"; d.querySelector("p").dir = "ltr"; }
-    d.querySelector("b").textContent = n.t; d.querySelector("p").textContent = n.b; d.querySelector(".num").textContent = n.d;
+    if (!EN && n.lang === "en") { d.querySelector("b").dir = "ltr"; d.querySelector("p").dir = "ltr"; }
+    d.querySelector("b").textContent = NT(n); d.querySelector("p").textContent = NB(n); d.querySelector(".num").textContent = n.d;
     if (n.ts) { const ag = d.querySelector(".ago"); ag.dataset.ts = n.ts; ag.textContent = ago(n.ts); }
-    if (n.kind === "official" || n.kind === "macro") { const k = document.createElement("span"); k.className = "kind " + n.kind; k.textContent = n.kind === "official" ? "منبع رسمی" : "اقتصاد کلان"; d.querySelector(".meta").prepend(k); }
+    if (n.kind === "official" || n.kind === "macro") { const k = document.createElement("span"); k.className = "kind " + n.kind; k.textContent = n.kind === "official" ? TXT.official : TXT.macro; d.querySelector(".meta").prepend(k); }
     const a = d.querySelector("a"); a.textContent = n.source.name; a.href = n.source.url; nb.append(d);
   });
-  if (s.live) renderNotes(s.notes, s.notes.length ? "" : "تحلیل این خبرها چند لحظهٔ دیگر آماده می‌شود.");
+  if (s.live) renderNotes(s.notes, s.notes.length ? "" : TXT.soon);
   else renderNotes(s.notes, "");
   tickClock();
 }
@@ -369,7 +395,7 @@ function renderDial() {
     const b = document.createElement("button"); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-current", s === selected ? "true" : "false");
     const cnt = s.notes.reduce((a, n) => (a[n.dir] = (a[n.dir] || 0) + 1, a), {});
     const col = (cnt.down || 0) > (cnt.up || 0) ? "var(--down)" : (cnt.up || 0) > (cnt.down || 0) ? "var(--up)" : "var(--mixed)";
-    b.innerHTML = `<span class="d" style="background:${col}"></span>`; b.append(s.fa); b.onclick = () => tune(s, true); d.append(b);
+    b.innerHTML = `<span class="d" style="background:${col}"></span>`; b.append(SN(s)); b.onclick = () => tune(s, true); d.append(b);
   });
 }
 function tune(s, fly) {
@@ -386,16 +412,17 @@ AI.status().then(st => { $("reanalyze").hidden = !st.ok; });
 $("reanalyze").onclick = async () => {
   if (!selected) return; const s = selected;
   if (ctl) ctl.abort(); ctl = new AbortController();
-  $("reanalyze").disabled = true; $("ai-s").textContent = "در حال تحلیل…";
+  $("reanalyze").disabled = true; $("ai-s").textContent = TXT.analysing;
   const live = Object.entries(marketNow).map(([c, v]) => `${c} ${fmtPrice(v.price)} (${(v.chg24h * 100).toFixed(2)}% 24h)`).join(", ");
   const M = window.MARKETS || {}, D = M.dominance;
   const macro = [M.gold && `gold ${M.gold.price.toFixed(0)} USD/oz`, M.wti && `WTI ${M.wti.price.toFixed(2)}`, M.brent && `Brent ${M.brent.price.toFixed(2)}`,
     D && `BTC dominance ${D.btc.toFixed(2)}%, USDT dominance ${D.usdt.toFixed(2)}%, total cap ${(D.total_mcap / 1e12).toFixed(2)}T`].filter(Boolean).join("; ");
   const m = (macro ? macro + "; " : "") + (live ? "live now: " + live : (DATA.market || []).map(x => `${x.c} ${x.p}`).join(", ") + " (" + DATA.market_date + ")");
-  const prompt = `You are a crypto market analyst for a Persian-language Telegram channel.
+  const lname = EN ? "English" : "Persian (Farsi)";
+  const prompt = `You are a crypto market analyst for a ${EN ? "global English" : "Persian-language"} crypto website.
 Below are recent news items from one region (${s.en}). Decide which coins or market segments each item could move, and in which direction.
 Reply with ONLY a JSON object like this (max 4 notes):
-{"notes":[{"c":["BTC","ETH"],"dir":"up"|"down"|"mixed","n":"one sentence in Persian (Farsi), max 30 words, on the likely market effect","w":"short Persian reason or timing note, max 15 words, may be empty"}]}
+{"notes":[{"c":["BTC","ETH"],"dir":"up"|"down"|"mixed","n":"one sentence in ${lname}, max 30 words, on the likely market effect","w":"short ${lname} reason or timing note, max 15 words, may be empty"}]}
 Rules: no buy/sell advice, no price targets, no entry points. If an item has no real market effect, say so with dir "mixed". Use coin tickers in Latin letters.
 Market context: ${m}.
 NEWS:
@@ -404,8 +431,8 @@ ${JSON.stringify(s.news.map(n => ({ date: n.d, title: n.en })), null, 1)}`;
     const res = await AI.ask(prompt, { json: true, signal: ctl.signal });
     const arr = Array.isArray(res) ? res : (res && res.notes);
     if (selected !== s) return;
-    if (Array.isArray(arr) && arr.length) renderNotes(arr.slice(0, 4).map(x => ({ c: Array.isArray(x.c) ? x.c.slice(0, 4) : [], dir: x.dir, n: String(x.n || ""), w: String(x.w || "") })), "");
-    else $("ai-s").textContent = "هوش مصنوعی نکته‌ای برنگرداند.";
+    if (Array.isArray(arr) && arr.length) renderNotes(arr.slice(0, 4).map(x => ({ c: Array.isArray(x.c) ? x.c.slice(0, 4) : [], dir: x.dir, n: String(x.n || ""), w: String(x.w || ""), ne: String(x.n || ""), we: String(x.w || "") })), "");
+    else $("ai-s").textContent = TXT.noNotes;
   } catch (e) { if (!e || e.code !== "cancelled") $("ai-s").textContent = AI.errorText(e); }
   finally { $("reanalyze").disabled = false; }
 };

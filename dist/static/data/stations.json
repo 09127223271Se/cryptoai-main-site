@@ -84,7 +84,8 @@
      "w": "نشانهٔ احساسات، نه تضمین جهت."
     }
    ],
-   "tz": "America/New_York"
+   "tz": "America/New_York",
+   "country_en": "USA · Wall Street, S&P 500, ETFs"
   },
   {
    "id": "dc",
@@ -154,7 +155,8 @@
      "w": ""
     }
    ],
-   "tz": "America/New_York"
+   "tz": "America/New_York",
+   "country_en": "USA · Federal Reserve, SEC, Congress"
   },
   {
    "id": "hk",
@@ -205,7 +207,8 @@
      "w": ""
     }
    ],
-   "tz": "Asia/Hong_Kong"
+   "tz": "Asia/Hong_Kong",
+   "country_en": "China · Hong Kong"
   },
   {
    "id": "seoul",
@@ -255,7 +258,8 @@
      "w": ""
     }
    ],
-   "tz": "Asia/Seoul"
+   "tz": "Asia/Seoul",
+   "country_en": "South Korea"
   },
   {
    "id": "tokyo",
@@ -287,7 +291,8 @@
      "w": "تاریخ‌ها دورند؛ اثر کوتاه‌مدت ندارد."
     }
    ],
-   "tz": "Asia/Tokyo"
+   "tz": "Asia/Tokyo",
+   "country_en": "Japan"
   },
   {
    "id": "mumbai",
@@ -319,7 +324,8 @@
      "w": "اثر جهانی محدود است."
     }
    ],
-   "tz": "Asia/Kolkata"
+   "tz": "Asia/Kolkata",
+   "country_en": "India"
   },
   {
    "id": "dubai",
@@ -362,7 +368,8 @@
      "w": ""
     }
    ],
-   "tz": "Asia/Dubai"
+   "tz": "Asia/Dubai",
+   "country_en": "UAE · Middle East and oil"
   },
   {
    "id": "paris",
@@ -394,7 +401,8 @@
      "w": "روی قیمت BTC اثر مستقیم ندارد."
     }
    ],
-   "tz": "Europe/Paris"
+   "tz": "Europe/Paris",
+   "country_en": "European Union · France"
   },
   {
    "id": "london",
@@ -406,7 +414,8 @@
    "freq": "98.6",
    "news": [],
    "notes": [],
-   "tz": "Europe/London"
+   "tz": "Europe/London",
+   "country_en": "United Kingdom · Bank of England, FTSE"
   },
   {
    "id": "zug",
@@ -446,7 +455,8 @@
      "w": "اثر بلندمدت."
     }
    ],
-   "tz": "Europe/Zurich"
+   "tz": "Europe/Zurich",
+   "country_en": "Switzerland · Ethereum Foundation"
   },
   {
    "id": "saopaulo",
@@ -478,7 +488,8 @@
      "w": "موضوع خوبی برای پست آموزشی کانال."
     }
    ],
-   "tz": "America/Sao_Paulo"
+   "tz": "America/Sao_Paulo",
+   "country_en": "Brazil"
   },
   {
    "id": "sansalvador",
@@ -510,7 +521,8 @@
      "w": ""
     }
    ],
-   "tz": "America/El_Salvador"
+   "tz": "America/El_Salvador",
+   "country_en": "El Salvador"
   },
   {
    "id": "lagos",
@@ -542,7 +554,8 @@
      "w": "اثر تدریجی."
     }
    ],
-   "tz": "Africa/Lagos"
+   "tz": "Africa/Lagos",
+   "country_en": "Nigeria"
   },
   {
    "id": "nairobi",
@@ -574,7 +587,8 @@
      "w": ""
     }
    ],
-   "tz": "Africa/Nairobi"
+   "tz": "Africa/Nairobi",
+   "country_en": "Kenya"
   },
   {
    "id": "istanbul",
@@ -586,7 +600,8 @@
    "freq": "96.4",
    "tz": "Europe/Istanbul",
    "news": [],
-   "notes": []
+   "notes": [],
+   "country_en": "Türkiye · lira and Borsa Istanbul"
   },
   {
    "id": "frankfurt",
@@ -598,7 +613,8 @@
    "freq": "92.1",
    "tz": "Europe/Berlin",
    "news": [],
-   "notes": []
+   "notes": [],
+   "country_en": "Germany · European Central Bank"
   }
  ]
 }

@@ -55,7 +55,7 @@
       try {
         const j = await (await fetch((window.API_BASE || "") + "/api/prices?symbols=" + [...symbols].join(","))).json();
         if (!j.ok) { status({ live: false }); return; }
-        status({ live: true, source: j.source + " (هر ۱۰ ثانیه)" });
+        status({ live: true, source: j.source + (window.LANG === "en" ? " (every 10 s)" : " (هر ۱۰ ثانیه)") });
         j.prices.forEach(p => emit(p.c, p.price, p.chg24h, p.source));
       } catch (e) { status({ live: false }); }
     };
