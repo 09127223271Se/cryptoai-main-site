@@ -191,6 +191,14 @@ def logout():
 
 
 # ---------- Health & AI ----------
+def _card_fa():
+    try:
+        import post_card
+        return post_card.FA
+    except Exception:
+        return False
+
+
 @app.route("/api/health")
 def health():
     return jsonify({
@@ -201,6 +209,7 @@ def health():
         "telegram": telegram_bot.ready(),
         "pro": {k: v for k, v in pro.stats().items() if k in ("ready", "usdt_wallet", "stars_link", "last_error")},
         "tts": tts.available(),
+        "post_card_persian": _card_fa(),
         "market_data_errors": dict(list(trader_engine.last_errors.items())[:5]),
         "news": news_live.status(),
     })

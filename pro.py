@@ -274,7 +274,12 @@ def send_alerts():
                 f"اثر احتمالی:\n{_impact_lines(n.get('im', [])) or 'اثر روشنی هنوز مشخص نیست.'}\n\n"
                 f"🔗 {n['source']['name']}: {n['source']['url']}\n\nCryptoAI Pro · تحلیل است، توصیهٔ سرمایه‌گذاری نیست.")
         try:
-            tb.call("sendMessage", chat_id=cfg()["pro"], text=text[:4000], disable_web_page_preview=True)
+            try:   # picture card with the BTC chart and impact bars; plain text if drawing fails
+                import post_card
+                tb.send_photo(cfg()["pro"], post_card.render_card(n, b.get("assets", [])),
+                              post_card.caption(n, b.get("assets", [])))
+            except Exception:
+                tb.call("sendMessage", chat_id=cfg()["pro"], text=text[:4000], disable_web_page_preview=True)
             S["alerted"] = (S["alerted"] + [n["source"]["url"]])[-300:]
             sent += 1
         except Exception as e:

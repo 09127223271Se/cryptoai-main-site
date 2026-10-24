@@ -64,6 +64,21 @@ def call(method: str, **params):
     return j.get("result")
 
 
+def send_photo(chat_id, png: bytes, caption: str, reply_markup: dict | None = None):
+    """Upload a PNG with an HTML caption."""
+    import json as _json
+    c = cfg()
+    data = {"chat_id": str(chat_id), "caption": caption[:1024], "parse_mode": "HTML"}
+    if reply_markup:
+        data["reply_markup"] = _json.dumps(reply_markup)
+    r = requests.post(API.format(token=c["token"], method="sendPhoto"), data=data,
+                      files={"photo": ("cryptoai.png", png, "image/png")}, timeout=40)
+    j = r.json()
+    if not j.get("ok"):
+        raise RuntimeError(j.get("description", "telegram error"))
+    return j["result"]
+
+
 def ensure_webhook():
     """Point Telegram at this site once per process (Render gives us RENDER_EXTERNAL_URL)."""
     c = cfg()
@@ -96,55 +111,34 @@ def send_for_approval(text: str, kind: str = "post") -> dict:
     return res
 
 
-def build_news_post(force: bool = False) -> str | None:
-    """Persian post from the freshest live headlines not posted before. None if there is nothing new."""
-    import news_live
-    data = news_live.get_stations()
-    if not data.get("live"):
-        return None
-    items = []
-    for st in data["stations"]:
-        if not st.get("live"):
-            continue
-        for n in st["news"]:
-            items.append({**n, "station": st["fa"], "notes": st.get("notes", [])})
-    items.sort(key=lambda x: -(x.get("ts") or 0))
-    fresh = [it for it in items if it["source"]["url"] not in _seen_urls and time.time() - (it.get("ts") or 0) < 6 * 3600]
-    if not fresh and not force:
-        return None
-    pick = (fresh or items)[:4]
-    if not pick:
-        return None
-
-    text = None
-    if ai_client.provider():
-        prompt = "\n".join([
-            "Write ONE Telegram channel post in Persian (Farsi) for a crypto news channel from these news items.",
-            "Use ONLY the facts given. Short lines, a title line, one bullet per news item with its city, a short 'what it may mean for the market' line,",
-            "no buy/sell advice, no targets, no entry points. Max 170 words. End with: ⚠️ تحلیل آموزشی است، سیگنال خرید یا فروش نیست.",
-            "Do not include links (they are added after your text). Output only the post.",
-            "ITEMS:",
-        ] + [f"- [{it['station']}] {it['en']} | notes: {[n.get('n') for n in it['notes']][:2]}" for it in pick])
-        try:
-            text = ai_client.ask(prompt, max_tokens=900).strip()
-        except Exception as e:
-            _state["last_error"] = f"AI: {e}"[:200]
-    if not text:
-        text = "📰 خبرهای تازهٔ کریپتو\n\n" + "\n".join(f"• {it['station']}: {it['t']}" for it in pick) + \
-               "\n\n⚠️ تحلیل آموزشی است، سیگنال خرید یا فروش نیست."
-    links = "\n".join(f"🔗 {it['source']['name']}: {it['source']['url']}" for it in pick)
-    for it in pick:
-        _seen_urls.add(it["source"]["url"])
-    return f"{text}\n\n{links}"
+_drafts: dict = {}   # admin message id -> HTML caption (to republish with formatting)
 
 
 def draft_news_now(force: bool = False) -> str:
-    post = build_news_post(force=force)
-    if not post:
+    """Pick the most market-moving fresh story, draw its card and send it to the admin for approval."""
+    import post_card
+    n, assets = post_card.pick_news(_seen_urls, force=force)
+    if not n:
         return "خبر تازه‌ای برای پست نبود."
-    send_for_approval(post, "news")
+    c = cfg()
+    cap = post_card.caption(n, assets)
+    kb = {"inline_keyboard": [[{"text": "✅ تأیید و انتشار", "callback_data": "approve:card"},
+                               {"text": "❌ رد", "callback_data": "reject:card"}]]}
+    try:
+        png = post_card.render_card(n, assets)
+        msg = send_photo(c["admin"], png, cap, kb)
+    except Exception as e:
+        _state["last_error"] = f"card: {e}"[:200]
+        msg = call("sendMessage", chat_id=c["admin"], text=cap, parse_mode="HTML", reply_markup=kb, disable_web_page_preview=True)
+    if not c["channel"]:
+        call("sendMessage", chat_id=c["admin"], text="(کانال تنظیم نشده: TELEGRAM_CHANNEL_ID)")
+    _drafts[msg["message_id"]] = cap
+    while len(_drafts) > 50:
+        _drafts.pop(next(iter(_drafts)))
+    _seen_urls.add(n["source"]["url"])
     with _lock:
-        _state["last_draft"], _state["last_draft_at"] = post[:300], time.time()
+        _state["drafts_sent"] += 1
+        _state["last_draft"], _state["last_draft_at"] = n.get("t", "")[:300], time.time()
     return "پیش‌نویس برای تأیید به تلگرام فرستاده شد."
 
 
@@ -162,15 +156,31 @@ def handle_update(upd: dict) -> None:
             call("answerCallbackQuery", callback_query_id=cq["id"], text="اجازه ندارید")
             return
         action = (cq.get("data") or "").split(":")[0]
+        if action == "noop":
+            call("answerCallbackQuery", callback_query_id=cq["id"])
+            return
         msg = cq.get("message") or {}
-        body = (msg.get("text") or "").split("\n\n(کانال تنظیم نشده")[0]
+        photo = (msg.get("photo") or [{}])[-1].get("file_id")
+        html_cap = _drafts.pop(msg.get("message_id"), None)
+        body = (msg.get("text") or msg.get("caption") or "").split("\n\n(کانال تنظیم نشده")[0]
         res = ""
         if action == "approve":
             if not c["channel"]:
                 res = "⚠️ کانال تنظیم نشده؛ منتشر نشد"
             else:
                 try:
-                    call("sendMessage", chat_id=c["channel"], text=body, disable_web_page_preview=True)
+                    import post_card
+                    btns = post_card.channel_buttons()
+                    extra = {"reply_markup": btns} if btns else {}
+                    if photo:
+                        if html_cap:
+                            call("sendPhoto", chat_id=c["channel"], photo=photo, caption=html_cap, parse_mode="HTML", **extra)
+                        else:
+                            call("sendPhoto", chat_id=c["channel"], photo=photo, caption=body[:1024], **extra)
+                    elif html_cap:
+                        call("sendMessage", chat_id=c["channel"], text=html_cap, parse_mode="HTML", disable_web_page_preview=True, **extra)
+                    else:
+                        call("sendMessage", chat_id=c["channel"], text=body, disable_web_page_preview=True, **extra)
                     res = "✅ در کانال منتشر شد · " + datetime.now(timezone.utc).strftime("%H:%M UTC")
                     with _lock:
                         _state["published"] += 1
@@ -182,9 +192,9 @@ def handle_update(upd: dict) -> None:
             with _lock:
                 _state["rejected"] += 1
         call("answerCallbackQuery", callback_query_id=cq["id"], text=res[:180] or "انجام شد")
-        try:
-            call("editMessageText", chat_id=msg["chat"]["id"], message_id=msg["message_id"],
-                 text=(body + "\n\n— " + res)[:4096], disable_web_page_preview=True)
+        try:   # replace the two buttons with the result
+            call("editMessageReplyMarkup", chat_id=msg["chat"]["id"], message_id=msg["message_id"],
+                 reply_markup={"inline_keyboard": [[{"text": res[:60] or "انجام شد", "callback_data": "noop"}]]})
         except Exception:
             pass
         return
