@@ -32,7 +32,8 @@
     return `<svg class="fl-bot" viewBox="0 0 60 60" aria-hidden="true">${body}<ellipse cx="23" cy="${ey}" rx="3.4" ry="4.6" fill="#0b1020"/><ellipse cx="37" cy="${ey}" rx="3.4" ry="4.6" fill="#0b1020"/><ellipse cx="24" cy="${ey - 1.6}" rx="1.1" ry="1.4" fill="#fff"/><ellipse cx="38" cy="${ey - 1.6}" rx="1.1" ry="1.4" fill="#fff"/></svg>`;
   }
 
-  let STATE = null, coin = "BTC", COIN = null, queue = [], shown = new Set(), timer = null;
+  let STATE = null, coin = "BTC", COIN = null, queue = [], shown = new Set(), timer = null, GEO = null, unsub = null;
+  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function buildAgents(agents) {
     const desks = $("fl-desks"), cards = $("fl-cards");
@@ -119,6 +120,7 @@
       const t = Y(Math.max(o, cl)), b = Y(Math.min(o, cl)); x.fillRect(cx - step * .34, t, step * .68, Math.max(1, b - t)); x.shadowBlur = 0;
     });
     x.fillStyle = "#fff"; x.beginPath(); x.arc(px - 4, py, 3.5, 0, 7); x.fill();
+    GEO = { Y, L, Rk, Rz, px, py, W, H, step, n };
   }
   async function loadCoin(sym) {
     coin = sym;
@@ -133,7 +135,24 @@
       const vd = $("fl-vd"); vd.textContent = T.verdict[c.verdict];
       vd.style.color = c.verdict.startsWith("up") ? "#33d39a" : c.verdict.startsWith("down") ? "#ff4fa3" : c.verdict === "conflict" ? "#ffc94d" : "#a78bfa";
     } catch (e) { COIN = null; }
-    chart(); monitors();
+    chart(); monitors(); live(sym);
+  }
+  function live(sym) {
+    if (!window.LivePrices || !COIN) return;
+    if (unsub) { try { unsub(); } catch (e) {} unsub = null; }
+    let last = 0;
+    const r = LivePrices.subscribe([sym], (s, v) => {
+      if (s !== sym || !COIN || COIN.sym !== sym) return;
+      const k = COIN.candles[COIN.candles.length - 1], p = v.price;
+      const hourStart = Math.floor(Date.now() / 3600000) * 3600;
+      if (k[0] < hourStart - 60) COIN.candles.push([hourStart, k[4], Math.max(k[4], p), Math.min(k[4], p), p]), COIN.candles.shift();
+      const c = COIN.candles[COIN.candles.length - 1];
+      c[4] = p; c[2] = Math.max(c[2], p); c[3] = Math.min(c[3], p);
+      COIN.price = p;
+      $("fl-px").textContent = usd(p);
+      const now = performance.now(); if (now - last > 400) { last = now; chart(); }
+    });
+    if (typeof r === "function") unsub = r;
   }
   ["BTC", "ETH", "SOL", "XRP", "TON", "DOGE"].forEach(s => {
     const b = el("button", null, s); b.type = "button"; b.dataset.s = s; b.onclick = () => loadCoin(s); $("fl-coins").append(b);
@@ -153,9 +172,62 @@
     if (instant) return;
     document.querySelectorAll(".fl-desk.on,.fl-card.on").forEach(x => { x.classList.remove("on"); const em = x.querySelector("em"); if (em) em.textContent = T.idle; });
     const desk = document.querySelector(`.fl-desk[data-a="${e.agent}"]`), card = document.querySelector(`.fl-card[data-a="${e.agent}"]`);
-    if (desk) { desk.classList.add("on"); desk.querySelector(".fl-bubble").textContent = EN ? e.en : e.fa; }
+    if (desk) { desk.classList.add("on"); if (calm) desk.querySelector(".fl-bubble").textContent = EN ? e.en : e.fa; else fly(desk, e); }
     if (card) { card.classList.add("on"); card.querySelector("em").textContent = "● " + T.run; }
   }
+  let slot = 0;
+  /* ---------- a bot walks to the chart, writes its finding there, walks back ---------- */
+  function target(e) {
+    const g = GEO; if (!g || !COIN) return null;
+    const mine = (e.en || "").startsWith(COIN.sym);
+    const top = () => { slot = (slot + 1) % 3; return { x: g.L + 90 + Math.random() * (g.Rk - g.L - 180), y: 22 + slot * 26 }; };
+    if (!mine && ["trend", "risk", "judge"].includes(e.agent)) return top();
+    switch (e.agent) {
+      case "trend": return mine ? { x: g.L + (g.Rk - g.L) * .55, y: g.Y(e.d < 0 ? COIN.sup : COIN.res), label: `${EN ? "RES" : "مقاومت"} ${usd(COIN.res)} · ${EN ? "SUP" : "حمایت"} ${usd(COIN.sup)}` } : { x: g.L + (g.Rk - g.L) * .4, y: g.Y(COIN.res) };
+      case "risk": return { x: g.Rz - 12, y: (g.Y(COIN.p75) + g.Y(COIN.p25)) / 2, label: mine ? `24h ${usd(COIN.p25)}–${usd(COIN.p75)}` : null };
+      case "judge": return { x: g.px - 10, y: g.py - 26, label: mine ? T.verdict[COIN.verdict] : null };
+      case "news": { const i = Math.floor(g.n * (.55 + Math.random() * .4)), c = COIN.candles[i] || COIN.candles[g.n - 1];
+        return { x: g.L + i * g.step, y: g.Y(e.d < 0 ? c[3] : c[2]) + (e.d < 0 ? 18 : -18) }; }
+      default: return top();
+    }
+  }
+  function note(t, text, color, d) {
+    const scr = document.querySelector(".fl-screen"), cv = $("fl-chart");
+    const n = el("div", "fl-note-chip"); n.dir = "auto"; n.textContent = (d > 0 ? "▲ " : d < 0 ? "▼ " : "") + text;
+    n.style.setProperty("--c", color);
+    n.style.left = (cv.offsetLeft + Math.min(Math.max(t.x, 60), cv.clientWidth - 60)) + "px";
+    n.style.top = (cv.offsetTop + Math.max(t.y, 14)) + "px";
+    scr.append(n);
+    const all = scr.querySelectorAll(".fl-note-chip"); if (all.length > 4) all[0].remove();
+    setTimeout(() => { n.classList.add("out"); setTimeout(() => n.remove(), 700); }, 9000);
+  }
+  function fly(desk, e) {
+    const t = target(e), room = document.querySelector(".fl-room"), home = desk.querySelector(".fl-bot");
+    if (!t || !room || !home) { desk.querySelector(".fl-bubble").textContent = EN ? e.en : e.fa; return; }
+    const a = AG(e.agent), rr = room.getBoundingClientRect(), hb = home.getBoundingClientRect(), cr = $("fl-chart").getBoundingClientRect();
+    const sx = hb.left - rr.left, sy = hb.top - rr.top;
+    const tx = cr.left - rr.left + t.x - hb.width / 2, ty = cr.top - rr.top + t.y - hb.height - 4;
+    const f = el("div", "fl-flyer"); f.innerHTML = bot(a.shape, a.color); f.style.setProperty("--c", a.color);
+    f.style.left = sx + "px"; f.style.top = sy + "px"; room.append(f);
+    home.style.visibility = "hidden";
+    const dx = tx - sx, dy = ty - sy, hop = Math.min(-60, dy - 40);
+    const go = f.animate([{ transform: "translate(0,0) scale(1)" },
+      { transform: `translate(${dx * .5}px,${dy * .5 + hop * .5}px) scale(.9) rotate(-8deg)`, offset: .5 },
+      { transform: `translate(${dx}px,${dy}px) scale(.8)` }], { duration: 900, easing: "cubic-bezier(.45,.05,.3,1)", fill: "forwards" });
+    go.onfinish = () => {
+      f.classList.add("writing");
+      const short = t.label || ((EN ? e.en : e.fa) || "").slice(0, 46);
+      note(t, short, a.color, e.d);
+      setTimeout(() => {
+        f.classList.remove("writing");
+        const back = f.animate([{ transform: `translate(${dx}px,${dy}px) scale(.8)` },
+          { transform: `translate(${dx * .5}px,${dy * .5 + hop * .4}px) scale(.9) rotate(8deg)`, offset: .5 },
+          { transform: "translate(0,0) scale(1)" }], { duration: 850, easing: "cubic-bezier(.45,.05,.3,1)", fill: "forwards" });
+        back.onfinish = () => { f.remove(); home.style.visibility = ""; };
+      }, 1700);
+    };
+  }
+
   function cycle() {
     if (!queue.length && STATE) {             // replay the latest real events so the floor keeps working
       queue = STATE.activity.slice(0, 18).reverse();
@@ -180,7 +252,7 @@
         j.activity.filter(e => !shown.has(e.ts + e.fa)).reverse().forEach(e => queue.push(e));
       }
       j.activity.forEach(e => shown.add(e.ts + e.fa));
-      if (!timer) { cycle(); timer = setInterval(() => { if (!document.hidden) cycle(); }, 2600); }
+      if (!timer) { cycle(); timer = setInterval(() => { if (!document.hidden) cycle(); }, calm ? 2600 : 4200); }
     } catch (e) { if (first) setTimeout(() => load(true), 8000); }
   }
   setInterval(() => { $("fs-clock").textContent = "LIVE " + new Date().toLocaleTimeString("en-GB", { hour12: false }); }, 1000);

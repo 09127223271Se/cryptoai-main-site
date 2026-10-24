@@ -89,3 +89,16 @@
 .lang-fa .floor .fl-h,.lang-fa .floor .fl-sub,.lang-fa .floor .fl-row p,.lang-fa .floor .fl-card p{letter-spacing:0}
 .fl-h span[dir]{font-family:var(--f-mono)}
 .lang-fa .fl-h span[dir]{font-family:var(--f-body);font-size:12px}
+
+/* bots flying to the chart and their notes */
+.fl-screen{position:relative}
+.fl-flyer{position:absolute;width:46px;height:46px;z-index:6;pointer-events:none}
+.fl-flyer .fl-bot{animation:none;width:46px;height:46px;filter:drop-shadow(0 0 12px var(--c))}
+.fl-flyer.writing .fl-bot{animation:flWrite .22s ease-in-out infinite alternate}
+@keyframes flWrite{from{transform:rotate(-7deg) translateY(0)}to{transform:rotate(7deg) translateY(-3px)}}
+.fl-note-chip{position:absolute;transform:translate(-50%,-50%);z-index:4;background:rgba(5,9,19,.88);border:1px solid var(--c);color:var(--c);
+  border-radius:8px;padding:3px 8px;font:600 11.5px/1.4 var(--f-body);white-space:nowrap;max-width:62%;overflow:hidden;text-overflow:ellipsis;
+  box-shadow:0 0 14px color-mix(in srgb,var(--c) 40%,transparent);animation:flPop .35s ease-out;pointer-events:none}
+.fl-note-chip.out{opacity:0;transition:opacity .6s}
+@keyframes flPop{from{opacity:0;transform:translate(-50%,-50%) scale(.6)}}
+.fl-bubble:empty{display:none}

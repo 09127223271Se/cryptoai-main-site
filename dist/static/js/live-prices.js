@@ -69,8 +69,10 @@
       const before = symbols.size;
       list.forEach(s => symbols.add(s.toUpperCase()));
       Object.entries(last).forEach(([s, v]) => fn && fn(s, v));
-      if (window.SITE_MODE !== "server") { status({ live: false }); return; }
+      const off = () => { const i = listeners.indexOf(fn); if (i >= 0) listeners.splice(i, 1); };
+      if (window.SITE_MODE !== "server") { status({ live: false }); return off; }
       if (!mode || symbols.size !== before) startBinance();
+      return off;
     },
     get(sym) { return last[sym]; }
   };
