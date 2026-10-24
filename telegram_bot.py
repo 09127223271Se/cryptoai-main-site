@@ -71,7 +71,7 @@ def ensure_webhook():
         return
     try:
         call("setWebhook", url=c["base"] + "/telegram/webhook", secret_token=webhook_secret(),
-             allowed_updates=["message", "callback_query"], drop_pending_updates=False)
+             allowed_updates=["message", "callback_query", "chat_member"], drop_pending_updates=False)
         try:
             call("setMyCommands", commands=[{"command": "news", "description": "ساخت پست خبری تازه برای تأیید"},
                                             {"command": "status", "description": "وضعیت ربات"}])
@@ -151,6 +151,10 @@ def draft_news_now(force: bool = False) -> str:
 # ------------------------------------------------------------------ webhook
 def handle_update(upd: dict) -> None:
     c = cfg()
+    if upd.get("chat_member"):
+        import pro
+        pro.on_chat_member(upd)
+        return
     admin = str(c["admin"])
     cq = upd.get("callback_query")
     if cq:
@@ -251,6 +255,11 @@ def start_loop():
                 tick()
             except Exception as e:
                 _state["last_error"] = str(e)[:200]
+            try:
+                import pro
+                pro.tick()
+            except Exception as e:
+                _state["last_error"] = "pro: " + str(e)[:180]
             time.sleep(60)
     threading.Thread(target=run, daemon=True).start()
 

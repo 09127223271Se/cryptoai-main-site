@@ -30,6 +30,29 @@
     </div>
   </section>
 
+  <section class="panel">
+    <div class="ph"><h2>CryptoAI Pro</h2>
+      {% if prostat.ready %}<span class="pill live">فعال</span>{% else %}<span class="pill warn">نیاز به تنظیم</span>{% endif %}</div>
+    <div class="pb">
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <tr><td style="padding:6px 0;color:var(--muted)">کانال خصوصی Pro (TELEGRAM_PRO_CHANNEL_ID)</td><td>{{ "✅ تنظیم شده" if prostat.pro_channel else "❌ تنظیم نشده" }}</td></tr>
+        <tr><td style="padding:6px 0;color:var(--muted)">کیف پول تتر (PRO_USDT_TRC20)</td><td>{{ "✅ تنظیم شده" if prostat.usdt_wallet else "❌ تنظیم نشده" }}</td></tr>
+        <tr><td style="padding:6px 0;color:var(--muted)">قیمت</td><td class="num">{{ prostat.price_usdt }} USDT · {{ prostat.price_stars }} Stars</td></tr>
+        <tr><td style="padding:6px 0;color:var(--muted)">مشترکان فعال با تتر</td><td class="num">{{ prostat.usdt_members }}</td></tr>
+        <tr><td style="padding:6px 0;color:var(--muted)">درآمد تتر (کل)</td><td class="num">{{ prostat.revenue_usdt }} USDT</td></tr>
+        <tr><td style="padding:6px 0;color:var(--muted)">لینک اشتراک Stars</td><td>{{ "✅ ساخته شده" if prostat.stars_link else "با اولین کلیک ساخته می‌شود" }}</td></tr>
+        <tr><td style="padding:6px 0;color:var(--muted)">آخرین خلاصهٔ صبحگاهی</td><td>{{ prostat.brief_day or "هنوز ارسال نشده" }}</td></tr>
+        {% if prostat.last_error %}<tr><td style="padding:6px 0;color:var(--muted)">آخرین خطا</td><td style="color:var(--down)">{{ prostat.last_error }}</td></tr>{% endif %}
+      </table>
+      <div class="row">
+        <button class="btn" id="brief-now" {% if not prostat.ready %}disabled{% endif %}>ارسال خلاصهٔ صبحگاهی همین الان</button>
+        <a class="btn" href="/pro" target="_blank" rel="noopener">صفحهٔ Pro</a>
+        <span class="status" id="st2" role="status"></span>
+      </div>
+      <p class="status">مشترکان Stars را خود تلگرام مدیریت می‌کند و در شمارش بالا نیستند؛ تعدادشان را در تنظیمات کانال Pro ببینید.</p>
+    </div>
+  </section>
+
   {% if bot.posted %}
   <section class="panel">
     <div class="ph"><h2>آخرین پست‌های منتشرشده</h2></div>
@@ -49,6 +72,11 @@
 {% endblock %}
 {% block scripts %}
 <script>
+document.getElementById("brief-now").onclick = async () => {
+  const st = document.getElementById("st2"); st.textContent = "در حال ارسال…";
+  try { const j = await (await fetch("/api/pro/brief", { method: "POST" })).json(); st.textContent = j.ok ? "خلاصه به کانال Pro فرستاده شد؛ نسخهٔ کوتاهش برای تأیید به تلگرام شما آمد." : "ارسال نشد؛ خبرهای زنده هنوز آماده نیستند یا کانال تنظیم نشده."; }
+  catch (e) { st.textContent = "سرور جواب نداد"; }
+};
 document.getElementById("draft").onclick = async () => {
   const b = document.getElementById("draft"), st = document.getElementById("st");
   b.disabled = true; st.textContent = "در حال ساختن پست از خبرهای زنده…";

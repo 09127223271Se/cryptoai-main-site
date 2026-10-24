@@ -34,15 +34,16 @@
     </div>
   </section>
 
-  {% if channel %}
   <section class="cta panel">
     <div>
       <h2>خبر مهم را زودتر از همه بگیرید</h2>
-      <p>هر خبری که بازار را تکان دهد، همراه تحلیل اثرش روی بیت‌کوین، طلا و دلار، اول در کانال تلگرام منتشر می‌شود.</p>
+      <p>با CryptoAI Pro هر خبری که بازار را تکان دهد، همان لحظه با تحلیل اثرش روی بیت‌کوین، طلا و دلار به تلگرام شما می‌رسد؛ هر صبح هم خلاصهٔ هوشمند همهٔ بازارها.</p>
     </div>
-    <a class="btn primary big" href="{{ channel }}" target="_blank" rel="noopener">عضویت در کانال</a>
+    <div class="row">
+      <a class="btn primary big" href="{{ link('pro') }}">آشنایی با Pro</a>
+      {% if channel %}<a class="btn big" href="{{ channel }}" target="_blank" rel="noopener">کانال رایگان</a>{% endif %}
+    </div>
   </section>
-  {% endif %}
 
   <section aria-labelledby="h-feed">
     <div class="sec-head">

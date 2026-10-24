@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}CryptoAI Pro{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/brief.css') }}">
+<style>
+.pro-hero{display:grid;gap:12px;max-width:760px;padding-block:8px}
+.pro-hero h1{font-family:var(--f-display);font-weight:400;font-size:clamp(32px,5.4vw,56px);line-height:1.12;text-wrap:balance}
+.pro-hero h1 span{color:var(--signal)}
+.pro-hero p{color:var(--muted);font-size:16px;max-width:60ch}
+.plans{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.plans{grid-template-columns:minmax(0,1fr)}}
+.plan{padding:18px;display:grid;gap:12px;align-content:start}
+.plan.pro{border-color:rgba(255,201,77,.6);background:linear-gradient(160deg,rgba(255,201,77,.10),rgba(34,211,238,.05) 60%),var(--panel)}
+.plan h2{font-size:20px;font-weight:800;display:flex;align-items:center;gap:8px}
+.plan .price{font-size:30px;font-weight:800}
+.plan .price small{font-size:14px;color:var(--muted);font-weight:500}
+.plan ul{list-style:none;display:grid;gap:8px;padding:0}
+.plan li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:6px;font-size:14.5px}
+.plan li::before{content:"✓";color:var(--up);font-weight:800}
+.plan li.no{color:var(--muted)}
+.plan li.no::before{content:"–";color:var(--muted)}
+.tag{font-size:12px;background:var(--signal);color:#1a1204;border-radius:999px;padding:1px 10px;font-weight:800}
+.pay{display:grid;gap:8px}
+.pay .btn{text-align:center}
+.checkout{padding:18px;display:grid;gap:12px}
+.addr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;overflow-wrap:anywhere}
+.addr code{font-family:var(--f-mono);font-size:14px;direction:ltr;unicode-bidi:isolate}
+.amount{font-family:var(--f-mono);font-size:28px;font-weight:700;color:var(--signal);direction:ltr;unicode-bidi:isolate}
+.steps{display:grid;gap:6px;color:var(--muted);font-size:14px;padding-inline-start:18px}
+.faq{display:grid;gap:8px}
+.faq details{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.faq summary{cursor:pointer;font-weight:700}
+.faq p{color:var(--muted);margin-top:6px}
+.sample{white-space:pre-wrap;background:var(--panel-2);border:1px solid var(--line);border-radius:12px 12px 12px 4px;padding:12px 14px;font-size:14px;line-height:1.9}
+</style>{% endblock %}
+{% block content %}
+<div class="wrap">
+  <section class="pro-hero">
+    <span class="eyebrow"><span class="live-dot"></span> CryptoAI Pro</span>
+    <h1>قبل از اینکه بازار حرکت کند، <span>بدانید چرا</span></h1>
+    <p>هر خبری که بیت‌کوین، طلا، نفت یا بازار سهام را تکان دهد، همان لحظه با تحلیل اثرش به تلگرام شما می‌رسد. هر صبح هم خلاصهٔ هوشمند همهٔ بازارها.</p>
+  </section>
+
+  <div class="plans">
+    <section class="panel plan">
+      <h2>رایگان</h2>
+      <div class="price">رایگان <small>برای همیشه</small></div>
+      <ul>
+        <li>هوش بازار و فشار خبری در سایت</li>
+        <li>کره رادیو و خبرهای زنده</li>
+        <li>تریدر و اسکنر چارت</li>
+        <li>کانال عمومی تلگرام</li>
+        <li class="no">هشدار فوری خبرهای مهم</li>
+        <li class="no">خلاصهٔ هوشمند صبحگاهی</li>
+      </ul>
+      {% if channel %}<a class="btn" href="{{ channel }}" target="_blank" rel="noopener">عضویت در کانال رایگان</a>{% endif %}
+    </section>
+
+    <section class="panel plan pro">
+      <h2>Pro <span class="tag">پیشنهاد ما</span></h2>
+      <div class="price"><span class="num">{{ '%g' % price_usdt }}</span> تتر <small>در ماه</small></div>
+      <ul>
+        <li>همهٔ امکانات رایگان</li>
+        <li><b>هشدار فوری</b>: خبرهای تکان‌دهندهٔ بازار، همان لحظه، با اثر روی بیت‌کوین، اتریوم، طلا، نفت، سهام و دلار</li>
+        <li><b>خلاصهٔ هوشمند ساعت ۸ صبح</b>: فشار خبری همهٔ بازارها و مهم‌ترین خبرهای شب</li>
+        <li>کانال خصوصی، بدون تبلیغ</li>
+        <li>لغو در هر زمان</li>
+      </ul>
+      {% if pro_ready %}
+      <div class="pay">
+        {% if usdt_on %}<button class="btn primary big" id="pay-usdt">پرداخت با تتر (TRC20)</button>{% endif %}
+        <a class="btn big" href="/pro/stars" target="_blank" rel="noopener">پرداخت با Telegram Stars · <span class="num">{{ price_stars }}</span> ⭐</a>
+      </div>
+      {% else %}
+      <p class="status">ثبت‌نام Pro به‌زودی باز می‌شود.{% if channel %} برای خبرش عضو کانال رایگان شوید.{% endif %}</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <section class="panel checkout" id="checkout" hidden aria-live="polite">
+    <h2 style="font-size:19px;font-weight:800">پرداخت با تتر</h2>
+    <ol class="steps">
+      <li>دقیقاً همین مبلغ را از شبکهٔ <b>TRON (TRC20)</b> بفرستید. این عدد مخصوص شماست و پرداخت را به شما وصل می‌کند.</li>
+      <li>این صفحه را باز نگه دارید؛ پرداخت خودکار تأیید می‌شود (معمولاً کمتر از ۲ دقیقه).</li>
+      <li>بعد از تأیید، لینک ورود یک‌بارمصرف به کانال Pro همین‌جا ظاهر می‌شود.</li>
+    </ol>
+    <div class="amount" id="co-amount"></div>
+    <div class="addr"><code id="co-wallet"></code><button class="btn" id="co-copy-w">کپی آدرس</button><button class="btn" id="co-copy-a">کپی مبلغ</button></div>
+    <p class="status" id="co-status">در انتظار پرداخت…</p>
+    <a class="btn primary big" id="co-link" target="_blank" rel="noopener" hidden>ورود به کانال CryptoAI Pro</a>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>نمونهٔ هشدار فوری</h2></div>
+    <div class="sample">🚨 خبر فوری بازار
+
+فدرال رزرو نرخ بهره را ۰٫۲۵ درصد کاهش داد
+
+اثر احتمالی:
+🟢 بیت‌کوین ↑ متوسط: پول ارزان‌تر، میل بیشتر به دارایی‌های پرریسک
+🟢 طلا ↑ متوسط: دلار ضعیف‌تر و بازده کمتر اوراق
+🔴 دلار ↓ متوسط: فاصلهٔ نرخ بهره با بقیهٔ دنیا کم می‌شود</div>
+  </section>
+
+  <section class="faq">
+    <div class="sec-head"><h2>سؤال‌های رایج</h2></div>
+    <details><summary>بعد از پرداخت چه می‌شود؟</summary><p>یک لینک یک‌بارمصرف ورود به کانال خصوصی Pro می‌گیرید. اشتراک از لحظهٔ ورود ۳۰ روز فعال است.</p></details>
+    <details><summary>تمدید چطور است؟</summary><p>با Telegram Stars تمدید ماهانه را خود تلگرام انجام می‌دهد. با تتر، ۳ روز قبل از پایان پیام یادآوری می‌گیرید و از همین صفحه دوباره پرداخت می‌کنید.</p></details>
+    <details><summary>اگر مبلغ را اشتباه بفرستم؟</summary><p>پرداخت فقط با مبلغ دقیق خودکار تأیید می‌شود. اگر اشتباهی پیش آمد، در کانال رایگان پیام بدهید تا دستی بررسی شود.</p></details>
+    <details><summary>این‌ها سیگنال خرید و فروش است؟</summary><p>نه. CryptoAI می‌گوید هر خبر بازار را به کدام سمت هل می‌دهد و چرا؛ تصمیم معامله با خودتان است.</p></details>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const btn = $("pay-usdt"); if (!btn) return;
+  let order = null, timer = null;
+  const copy = async (t, el) => { try { await navigator.clipboard.writeText(t); el.textContent = "کپی شد"; } catch (e) { el.textContent = t; } };
+  btn.onclick = async () => {
+    btn.disabled = true;
+    try {
+      const j = await (await fetch("/api/pro/order", { method: "POST" })).json();
+      if (!j.ok) { alertBox(j.error || "خطا"); btn.disabled = false; return; }
+      order = j;
+      $("co-amount").textContent = j.amount.toFixed(2) + " USDT";
+      $("co-wallet").textContent = j.wallet;
+      $("co-copy-w").onclick = e => copy(j.wallet, e.target);
+      $("co-copy-a").onclick = e => copy(j.amount.toFixed(2), e.target);
+      $("checkout").hidden = false; $("checkout").scrollIntoView({ block: "start" });
+      timer = setInterval(poll, 15000); setTimeout(poll, 5000);
+    } catch (e) { alertBox("اتصال برقرار نشد؛ دوباره امتحان کنید."); btn.disabled = false; }
+  };
+  function alertBox(t) { $("checkout").hidden = false; $("co-status").textContent = t; }
+  async function poll() {
+    if (!order) return;
+    try {
+      const j = await (await fetch("/api/pro/order/" + order.id)).json();
+      if (j.status === "paid") {
+        clearInterval(timer);
+        $("co-status").textContent = "پرداخت تأیید شد 🎉 این لینک فقط یک بار کار می‌کند:";
+        const l = $("co-link"); l.href = j.link; l.hidden = false;
+      } else if (j.status === "expired") {
+        clearInterval(timer); $("co-status").textContent = "زمان این سفارش تمام شد. اگر پرداخت کرده‌اید، در کانال رایگان پیام بدهید؛ وگرنه دوباره «پرداخت با تتر» را بزنید.";
+      } else { $("co-status").textContent = "در انتظار پرداخت… (هر ۱۵ ثانیه بررسی می‌شود)"; }
+    } catch (e) {}
+  }
+})();
+</script>
+{% endblock %}

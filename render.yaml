@@ -24,6 +24,14 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
+      - key: TELEGRAM_PRO_CHANNEL_ID
+        sync: false
+      - key: PRO_USDT_TRC20
+        sync: false
+      - key: PRO_PRICE_USDT
+        value: "9"
+      - key: PRO_STARS
+        value: "500"
       - key: AUTO_POST_MINUTES
         value: "60"
       - key: SECRET_KEY

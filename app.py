@@ -20,6 +20,7 @@ from flask import Flask, Response, jsonify, redirect, render_template, request, 
 import ai_client
 import markets
 import news_live
+import pro
 import telegram_bot
 import trader_engine
 import tts
@@ -36,7 +37,7 @@ app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax",
 if trader_engine.trader_bp is not None:
     app.register_blueprint(trader_engine.trader_bp)      # /api/trader/scan, /api/trader/setup/<coin>
 
-PAGES = {"home": "/", "radio": "/radio", "trader": "/trader", "analysis": "/analysis", "sales": "/sales", "admin": "/admin"}
+PAGES = {"home": "/", "pro": "/pro", "radio": "/radio", "trader": "/trader", "analysis": "/analysis", "sales": "/sales", "admin": "/admin"}
 
 
 # ---------- admin login (password lives only in Render: ADMIN_PASSWORD) ----------
@@ -94,6 +95,45 @@ def home():
     return page("home", "brief.html")
 
 
+@app.route("/pro")
+def pro_page():
+    st = pro.stats()
+    return page("pro", "pro.html", pro_ready=st["ready"], usdt_on=st["ready"] and st["usdt_wallet"],
+                price_usdt=st["price_usdt"], price_stars=st["price_stars"])
+
+
+@app.route("/pro/stars")
+def pro_stars():
+    link = pro.stars_link()
+    return redirect(link) if link else redirect("/pro?unavailable=1")
+
+
+@app.route("/api/pro/order", methods=["POST"])
+def api_pro_order():
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0]
+    q = _ai_hits["order:" + ip]
+    while q and time.time() - q[0] > 3600:
+        q.popleft()
+    if len(q) >= 10:
+        return jsonify({"ok": False, "error": "تعداد درخواست زیاد است؛ کمی بعد دوباره امتحان کنید."}), 429
+    q.append(time.time())
+    try:
+        return jsonify({"ok": True, **pro.new_order()})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)[:200]}), 503
+
+
+@app.route("/api/pro/order/<oid>")
+def api_pro_order_status(oid):
+    return jsonify(pro.check_order(oid))
+
+
+@app.route("/api/pro/brief", methods=["POST"])
+@admin_required(api=True)
+def api_pro_brief():
+    return jsonify({"ok": pro.morning_brief(force=True)})
+
+
 @app.route("/radio")
 def radio_page():
     return page("radio", "index.html")
@@ -141,7 +181,7 @@ def admin_page():
             error = "رمز درست نیست."
     if not is_admin():
         return page("admin", "login.html", error=error)
-    return page("admin", "admin.html", bot=telegram_bot.status(), cfg=telegram_bot.cfg())
+    return page("admin", "admin.html", bot=telegram_bot.status(), cfg=telegram_bot.cfg(), prostat=pro.stats())
 
 
 @app.route("/logout")
@@ -159,6 +199,7 @@ def health():
         "business_module": os.path.isdir(BUSINESS_PATH),
         "ai_provider": ai_client.provider(),
         "telegram": telegram_bot.ready(),
+        "pro": {k: v for k, v in pro.stats().items() if k in ("ready", "usdt_wallet", "stars_link", "last_error")},
         "tts": tts.available(),
         "market_data_errors": dict(list(trader_engine.last_errors.items())[:5]),
         "news": news_live.status(),
