@@ -72,7 +72,7 @@ def channel_url(lang: str = "fa") -> str:
 
 def music_embed() -> str:
     """Official Spotify / YouTube embed link for the music button (MUSIC_EMBED_URL in Render). Only those hosts."""
-    url = os.environ.get("MUSIC_EMBED_URL", "").strip()
+    url = os.environ.get("MUSIC_EMBED_URL", "https://open.spotify.com/embed/track/52SfGEripRfNemuV3g8QH2?utm_source=generator&theme=0").strip()
     ok = url.startswith(("https://open.spotify.com/embed/", "https://www.youtube.com/embed/", "https://www.youtube-nocookie.com/embed/"))
     return url if ok else ""
 
