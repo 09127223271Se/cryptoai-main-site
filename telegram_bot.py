@@ -40,6 +40,7 @@ def cfg():
         "token": os.environ.get("TELEGRAM_BOT_TOKEN", "").strip(),
         "admin": os.environ.get("TELEGRAM_ADMIN_CHAT", "").strip(),
         "channel": os.environ.get("TELEGRAM_CHANNEL_ID", "").strip(),
+        "channel_en": os.environ.get("TELEGRAM_CHANNEL_EN", "").strip(),
         "every": int(os.environ.get("AUTO_POST_MINUTES", "60") or 0),
         "auto": os.environ.get("AUTO_PUBLISH", "1").strip() not in ("0", "false", "no", ""),
         "base": os.environ.get("RENDER_EXTERNAL_URL", "").rstrip("/"),
@@ -134,6 +135,23 @@ def _load_seen():
         pass
 
 
+def _publish(lang, channel, n, assets, png=None, cap=None):
+    """Post one story to one channel in its language. Returns the channel message id."""
+    import post_card
+    if cap is None:
+        cap = post_card.caption(n, assets) if lang == "fa" else post_card.caption_en(n, assets)
+    if png is None:
+        try:
+            png = post_card.render_card(n, assets, lang)
+        except Exception as e:
+            _state["last_error"] = f"card {lang}: {e}"[:200]
+    btns = post_card.channel_buttons(lang)
+    if png:
+        return send_photo(channel, png, cap, btns)["message_id"]
+    return call("sendMessage", chat_id=channel, text=cap, parse_mode="HTML", disable_web_page_preview=True,
+                **({"reply_markup": btns} if btns else {}))["message_id"]
+
+
 def draft_news_now(force: bool = False, breaking_only: bool = False) -> str:
     """Pick the most market-moving fresh story and draw its card.
     AUTO_PUBLISH on (default): post it to the channel at once and notify the admin (with a delete button).
@@ -151,22 +169,28 @@ def draft_news_now(force: bool = False, breaking_only: bool = False) -> str:
         _state["last_error"] = f"card: {e}"[:200]
         png = None
 
-    if c["auto"] and c["channel"]:
-        btns = post_card.channel_buttons()
-        if png:
-            msg = send_photo(c["channel"], png, cap, btns)
-        else:
-            msg = call("sendMessage", chat_id=c["channel"], text=cap, parse_mode="HTML", disable_web_page_preview=True,
-                       **({"reply_markup": btns} if btns else {}))
+    if c["auto"] and (c["channel"] or c["channel_en"]):
+        done = []
+        for lang, ch in (("fa", c["channel"]), ("en", c["channel_en"])):
+            if not ch:
+                continue
+            try:
+                mid = _publish(lang, ch, n, assets, png if lang == "fa" else None, cap if lang == "fa" else None)
+                done.append((lang, mid))
+            except Exception as e:
+                _state["last_error"] = f"publish {lang}: {e}"[:200]
+        if not done:
+            return "انتشار نشد: " + str(_state["last_error"])
         _remember(n["source"]["url"])
         with _lock:
             _state["published"] += 1
             _state["posted"] = ([{"at": time.time(), "text": n.get("t", "")[:200]}] + _state["posted"])[:10]
             _state["last_draft"], _state["last_draft_at"] = n.get("t", "")[:300], time.time()
         try:
-            call("sendMessage", chat_id=c["admin"], disable_notification=False,
-                 text=f"📢 پست جدید منتشر شد:\n{n.get('t', '')}",
-                 reply_markup={"inline_keyboard": [[{"text": "🗑 حذف از کانال", "callback_data": f"del:{msg['message_id']}"}]]})
+            btn = [{"text": "🗑 حذف از کانال فارسی" if lg == "fa" else "🗑 حذف از کانال انگلیسی",
+                    "callback_data": f"del:{lg}:{mid}"} for lg, mid in done]
+            call("sendMessage", chat_id=c["admin"], text=f"📢 پست جدید منتشر شد ({' + '.join('فارسی' if lg == 'fa' else 'انگلیسی' for lg, _ in done)}):\n{n.get('t', '')}",
+                 reply_markup={"inline_keyboard": [btn]})
         except Exception:
             pass
         return "پست در کانال منتشر شد."
@@ -179,7 +203,7 @@ def draft_news_now(force: bool = False, breaking_only: bool = False) -> str:
         msg = call("sendMessage", chat_id=c["admin"], text=cap, parse_mode="HTML", reply_markup=kb, disable_web_page_preview=True)
     if not c["channel"]:
         call("sendMessage", chat_id=c["admin"], text="(کانال تنظیم نشده: TELEGRAM_CHANNEL_ID)")
-    _drafts[msg["message_id"]] = cap
+    _drafts[msg["message_id"]] = {"cap": cap, "n": n, "assets": assets}
     while len(_drafts) > 50:
         _drafts.pop(next(iter(_drafts)))
     _remember(n["source"]["url"])
@@ -207,9 +231,10 @@ def handle_update(upd: dict) -> None:
             call("answerCallbackQuery", callback_query_id=cq["id"])
             return
         if action == "del":
-            mid = (cq.get("data") or "").split(":")[1]
+            parts_ = (cq.get("data") or "").split(":")
+            lg, mid = (parts_[1], parts_[2]) if len(parts_) > 2 else ("fa", parts_[1])
             try:
-                call("deleteMessage", chat_id=c["channel"], message_id=int(mid))
+                call("deleteMessage", chat_id=c["channel_en"] if lg == "en" else c["channel"], message_id=int(mid))
                 res = "🗑 از کانال حذف شد"
             except Exception as e:
                 res = "⚠️ حذف نشد: " + str(e)[:100]
@@ -223,7 +248,8 @@ def handle_update(upd: dict) -> None:
             return
         msg = cq.get("message") or {}
         photo = (msg.get("photo") or [{}])[-1].get("file_id")
-        html_cap = _drafts.pop(msg.get("message_id"), None)
+        dr = _drafts.pop(msg.get("message_id"), None)
+        html_cap = dr["cap"] if isinstance(dr, dict) else dr
         body = (msg.get("text") or msg.get("caption") or "").split("\n\n(کانال تنظیم نشده")[0]
         res = ""
         if action == "approve":
@@ -244,6 +270,13 @@ def handle_update(upd: dict) -> None:
                     else:
                         call("sendMessage", chat_id=c["channel"], text=body, disable_web_page_preview=True, **extra)
                     res = "✅ در کانال منتشر شد · " + datetime.now(timezone.utc).strftime("%H:%M UTC")
+                    if isinstance(dr, dict) and c["channel_en"]:
+                        try:
+                            _publish("en", c["channel_en"], dr["n"], dr["assets"])
+                            res += " · EN ✅"
+                        except Exception as e:
+                            res += " · EN ⚠️"
+                            _state["last_error"] = f"publish en: {e}"[:200]
                     with _lock:
                         _state["published"] += 1
                         _state["posted"] = ([{"at": time.time(), "text": body[:200]}] + _state["posted"])[:10]
@@ -276,7 +309,7 @@ def handle_update(upd: dict) -> None:
         s = status()
         call("sendMessage", chat_id=chat, text=(
             "🤖 ایجنت CryptoAI فعال است\n"
-            f"کانال: {c['channel'] or 'تنظیم نشده'}\n"
+            f"کانال فارسی: {c['channel'] or 'تنظیم نشده'} · کانال انگلیسی: {c['channel_en'] or 'تنظیم نشده'}\n"
             f"پست خودکار: {'هر ' + str(c['every']) + ' دقیقه' if c['every'] else 'خاموش'}"
             f" · {'انتشار مستقیم' if c['auto'] else 'با تأیید شما'} · خبر فوری بلافاصله\n"
             f"پیش‌نویس فرستاده‌شده: {s['drafts_sent']} · منتشرشده: {s['published']} · ردشده: {s['rejected']}\n"

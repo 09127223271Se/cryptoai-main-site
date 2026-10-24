@@ -207,60 +207,62 @@ def _gtranslate(text: str) -> str:
 ASSETS = [("BTC", "بیت‌کوین"), ("ETH", "اتریوم"), ("ALT", "آلت‌کوین‌ها"), ("GOLD", "طلا"),
           ("OIL", "نفت"), ("SPX", "S&P 500"), ("DXY", "دلار آمریکا")]
 ASSET_KEYS = {k for k, _ in ASSETS}
+ASSET_EN = {"BTC": "Bitcoin", "ETH": "Ethereum", "ALT": "Altcoins", "GOLD": "Gold", "OIL": "Oil", "SPX": "S&P 500", "DXY": "US Dollar"}
+LABEL_EN = {"صعودی قوی": "Strong bullish", "صعودی": "Bullish", "نزولی قوی": "Strong bearish", "نزولی": "Bearish", "خنثی": "Neutral"}
 
 # Fallback analysis when the AI is unavailable: well-known cross-market links, written in Persian.
 _HEUR = [
     (r"rate cut|cuts rates|cut interest rates|dovish|lower(s|ed)? (interest )?rates|lower the target range|reduce the target range|easing", 3,
      [("BTC", 1, 2), ("ETH", 1, 2), ("ALT", 1, 2), ("GOLD", 1, 2), ("SPX", 1, 2), ("DXY", -1, 2)],
-     "کاهش نرخ بهره یعنی پول ارزان‌تر و میل بیشتر به دارایی‌های پرریسک"),
+     "کاهش نرخ بهره یعنی پول ارزان‌تر و میل بیشتر به دارایی‌های پرریسک", "Lower rates mean cheaper money and more appetite for risk assets"),
     (r"rate hike|raises rates|raise interest rates|raise the target range|hawkish|higher for longer", 3,
      [("BTC", -1, 2), ("ETH", -1, 2), ("ALT", -1, 2), ("SPX", -1, 2), ("GOLD", -1, 1), ("DXY", 1, 2)],
-     "نرخ بهرهٔ بالاتر پول را گران می‌کند و به دارایی‌های پرریسک فشار می‌آورد"),
+     "نرخ بهرهٔ بالاتر پول را گران می‌کند و به دارایی‌های پرریسک فشار می‌آورد", "Higher rates make money expensive and weigh on risk assets"),
     (r"inflation (rises|rose|jumps|accelerat|hotter|higher)|cpi (rises|rose|beats|hotter|jumps)|prices rise faster", 3,
      [("BTC", -1, 1), ("SPX", -1, 1), ("GOLD", 1, 1), ("DXY", 1, 1)],
-     "تورم بالاتر احتمال کاهش نرخ بهره را کم می‌کند"),
+     "تورم بالاتر احتمال کاهش نرخ بهره را کم می‌کند", "Hotter inflation makes rate cuts less likely"),
     (r"inflation (cools|eases|slows|falls)|cpi (cools|eases|falls|slows)", 3,
      [("BTC", 1, 1), ("SPX", 1, 1), ("DXY", -1, 1)],
-     "تورم آرام‌تر راه کاهش نرخ بهره را باز می‌کند"),
-    (r"etf.{0,60}(inflow|inflows|draws|attracts)", 2, [("BTC", 1, 2)], "ورود پول به ETFها یعنی تقاضای نهادی بیشتر"),
-    (r"etf.{0,60}(outflow|outflows|withdrawals|bleed)", 2, [("BTC", -1, 2)], "خروج پول از ETFها یعنی تقاضای نهادی کمتر"),
-    (r"hack|exploit|stolen|drained|breach", 2, [("ALT", -1, 2), ("BTC", -1, 1)], "هک اعتماد بازار را کم می‌کند و فروش را بیشتر"),
+     "تورم آرام‌تر راه کاهش نرخ بهره را باز می‌کند", "Cooler inflation opens the door to rate cuts"),
+    (r"etf.{0,60}(inflow|inflows|draws|attracts)", 2, [("BTC", 1, 2)], "ورود پول به ETFها یعنی تقاضای نهادی بیشتر", "ETF inflows mean more institutional demand"),
+    (r"etf.{0,60}(outflow|outflows|withdrawals|bleed)", 2, [("BTC", -1, 2)], "خروج پول از ETFها یعنی تقاضای نهادی کمتر", "ETF outflows mean less institutional demand"),
+    (r"hack|exploit|stolen|drained|breach", 2, [("ALT", -1, 2), ("BTC", -1, 1)], "هک اعتماد بازار را کم می‌کند و فروش را بیشتر", "Hacks hurt market confidence and add selling"),
     (r"sell-?off|stocks (fall|slide|tumble|drop|sink)|(s&p 500|s&p|nasdaq|dow) (falls|drops|slides|tumbles|sinks)|worst day", 2,
      [("SPX", -1, 2), ("BTC", -1, 1), ("ETH", -1, 1), ("ALT", -1, 2), ("GOLD", 1, 1)],
-     "ریزش سهام یعنی فرار از ریسک؛ کریپتو معمولاً همراه سهام پایین می‌آید"),
+     "ریزش سهام یعنی فرار از ریسک؛ کریپتو معمولاً همراه سهام پایین می‌آید", "Falling stocks mean risk-off; crypto usually follows"),
     (r"stocks (rise|rally|gain|climb|jump|hit record)|(s&p 500|s&p|nasdaq|dow) (rises|rallies|gains|climbs|hits (a )?record)", 2,
      [("SPX", 1, 2), ("BTC", 1, 1), ("ALT", 1, 1)],
-     "رشد سهام یعنی میل به ریسک؛ معمولاً به کریپتو هم کمک می‌کند"),
+     "رشد سهام یعنی میل به ریسک؛ معمولاً به کریپتو هم کمک می‌کند", "Rising stocks mean risk-on, which usually helps crypto"),
     (r"oil (prices )?(jump|jumps|surge|surges|rise|rises|climb|climbs|spike|spikes)|opec.{0,40}(cut|reduce)|crude (jumps|surges|rises)", 2,
      [("OIL", 1, 2), ("BTC", -1, 1), ("SPX", -1, 1)],
-     "نفت گران‌تر تورم را بالا می‌برد و کاهش نرخ بهره را عقب می‌اندازد"),
+     "نفت گران‌تر تورم را بالا می‌برد و کاهش نرخ بهره را عقب می‌اندازد", "Pricier oil lifts inflation and delays rate cuts"),
     (r"oil (prices )?(fall|falls|drop|drops|slide|slides|plunge|plunges|slump)|crude (falls|drops|slides)", 2,
-     [("OIL", -1, 2), ("BTC", 1, 1)], "نفت ارزان‌تر فشار تورمی را کم می‌کند"),
-    (r"gold (hits|record|rises|surges|jumps|climbs|rallies)", 2, [("GOLD", 1, 2)], "تقاضا برای دارایی امن بالا رفته"),
-    (r"gold (falls|drops|slides|slumps)", 2, [("GOLD", -1, 2)], "تقاضای دارایی امن کم شده"),
+     [("OIL", -1, 2), ("BTC", 1, 1)], "نفت ارزان‌تر فشار تورمی را کم می‌کند", "Cheaper oil eases inflation pressure"),
+    (r"gold (hits|record|rises|surges|jumps|climbs|rallies)", 2, [("GOLD", 1, 2)], "تقاضا برای دارایی امن بالا رفته", "Demand for safe havens is rising"),
+    (r"gold (falls|drops|slides|slumps)", 2, [("GOLD", -1, 2)], "تقاضای دارایی امن کم شده", "Demand for safe havens is fading"),
     (r"dollar (strengthens|rises|jumps|surges|gains)|yields? (rise|rises|jump|jumps|climb|surge)", 2,
-     [("DXY", 1, 2), ("BTC", -1, 1), ("GOLD", -1, 1)], "دلار قوی‌تر یا بازده بالاتر اوراق، جذابیت کریپتو و طلا را کم می‌کند"),
+     [("DXY", 1, 2), ("BTC", -1, 1), ("GOLD", -1, 1)], "دلار قوی‌تر یا بازده بالاتر اوراق، جذابیت کریپتو و طلا را کم می‌کند", "A stronger dollar or higher yields make crypto and gold less attractive"),
     (r"dollar (weakens|falls|slides|drops)|yields? (fall|falls|drop|drops|slide)", 2,
-     [("DXY", -1, 2), ("BTC", 1, 1), ("GOLD", 1, 1)], "دلار ضعیف‌تر معمولاً به کریپتو و طلا کمک می‌کند"),
-    (r"lira (hits record low|plunges|falls|slumps|weakens)", 1, [("BTC", 1, 1)], "ضعف لیر تقاضای محلی برای بیت‌کوین و استیبل‌کوین را بالا می‌برد"),
+     [("DXY", -1, 2), ("BTC", 1, 1), ("GOLD", 1, 1)], "دلار ضعیف‌تر معمولاً به کریپتو و طلا کمک می‌کند", "A weaker dollar usually helps crypto and gold"),
+    (r"lira (hits record low|plunges|falls|slumps|weakens)", 1, [("BTC", 1, 1)], "ضعف لیر تقاضای محلی برای بیت‌کوین و استیبل‌کوین را بالا می‌برد", "A weak lira lifts local demand for Bitcoin and stablecoins"),
     (r"approv.{0,40}(etf|stablecoin)|bill passes|regulatory clarity|green light", 2,
-     [("BTC", 1, 1), ("ALT", 1, 2)], "شفافیت قانونی راه ورود سرمایهٔ بیشتر را باز می‌کند"),
+     [("BTC", 1, 1), ("ALT", 1, 2)], "شفافیت قانونی راه ورود سرمایهٔ بیشتر را باز می‌کند", "Regulatory clarity opens the door to more capital"),
     (r"(lawsuit|sues|crackdown|ban(s|ned)?|charges).{0,60}(crypto|exchange|token)", 2,
-     [("ALT", -1, 2), ("BTC", -1, 1)], "فشار قانونی ریسک بازار را بالا می‌برد"),
-    (r"liquidat", 2, [("BTC", -1, 1), ("ALT", -1, 1)], "لیکوئید شدن معامله‌گران اهرمی، نوسان را تشدید می‌کند"),
-    (r"tariff|trade war", 2, [("SPX", -1, 1), ("BTC", -1, 1), ("GOLD", 1, 1)], "جنگ تجاری ریسک رشد اقتصادی را بالا می‌برد"),
+     [("ALT", -1, 2), ("BTC", -1, 1)], "فشار قانونی ریسک بازار را بالا می‌برد", "Legal pressure raises market risk"),
+    (r"liquidat", 2, [("BTC", -1, 1), ("ALT", -1, 1)], "لیکوئید شدن معامله‌گران اهرمی، نوسان را تشدید می‌کند", "Liquidations of leveraged traders amplify swings"),
+    (r"tariff|trade war", 2, [("SPX", -1, 1), ("BTC", -1, 1), ("GOLD", 1, 1)], "جنگ تجاری ریسک رشد اقتصادی را بالا می‌برد", "Trade wars raise risks to growth"),
 ]
 
 
 def _heuristic(title: str, desc: str, kind: str):
     hay = (title + " " + desc).lower()
     imp, out = (2 if kind == "official" else 1), {}
-    for pat, i, effects, why in _HEUR:
+    for pat, i, effects, why, why_en in _HEUR:
         if re.search(pat, hay):
             imp = max(imp, i)
             for a, d, st in effects:
                 if a not in out:
-                    out[a] = {"a": a, "d": d, "s": st, "w": why}
+                    out[a] = {"a": a, "d": d, "s": st, "w": why, "we": why_en}
     if "ether" in hay or " eth " in f" {hay} " or "ethereum" in hay:
         for k, v in list(out.items()):
             if k == "BTC" and "ETH" not in out:
@@ -281,7 +283,7 @@ def _clean_impacts(lst):
             s_ = max(1, min(3, int(x.get("s", 1))))
         except Exception:
             continue
-        out.append({"a": a, "d": d, "s": s_, "w": str(x.get("w") or "")[:160]})
+        out.append({"a": a, "d": d, "s": s_, "w": str(x.get("w") or "")[:160], "we": str(x.get("we") or "")[:160]})
     return out[:6]
 
 
@@ -299,11 +301,12 @@ def _translate(items):
             "  b: Persian summary, 1-2 sentences, ONLY from the given text\n"
             "  imp: market importance 1 (minor), 2 (notable), 3 (market-moving)\n"
             "  im: list of assets this news can move, from exactly these keys: BTC, ETH, ALT (altcoins), GOLD, OIL, SPX (S&P 500), DXY (US dollar).\n"
-            "      each: {a: key, d: 1 up / -1 down / 0 unclear, s: 1 weak / 2 moderate / 3 strong, w: Persian, max 14 words, the channel of effect}\n"
+            "      each: {a: key, d: 1 up / -1 down / 0 unclear, s: 1 weak / 2 moderate / 3 strong, w: Persian, max 14 words, the channel of effect,\n"
+            "             we: the same reason in English, max 14 words}\n"
             "      Include only assets with a real, explainable link (e.g. stocks down -> risk-off -> BTC down; oil up -> inflation -> later rate cuts -> crypto pressure;\n"
             "      stronger dollar / higher yields -> pressure on crypto and gold; ETF inflows -> BTC up; hacks -> alts down). Empty list if none.\n"
             "Keep tickers, company and person names in Latin letters where Persian readers expect them. No buy/sell advice, no price targets.\n"
-            'Return ONLY JSON: {"items": [{"i": 0, "t": "...", "b": "...", "imp": 2, "im": [{"a": "BTC", "d": -1, "s": 2, "w": "..."}]}]}\n'
+            'Return ONLY JSON: {"items": [{"i": 0, "t": "...", "b": "...", "imp": 2, "im": [{"a": "BTC", "d": -1, "s": 2, "w": "...", "we": "..."}]}]}\n'
             "ITEMS: " + json.dumps(payload, ensure_ascii=False))
         try:
             raw = ai_client.ask(prompt, json_mode=True, max_tokens=3500, timeout=90)
@@ -350,9 +353,9 @@ def _brief(items, stations_by_url):
         if not tr:
             continue
         age_h = max(0.0, (now - it["ts"]) / 3600)
-        entry = {"t": tr["t"], "b": tr["b"], "ts": it["ts"], "imp": tr.get("imp", 1), "im": tr.get("im", []),
+        entry = {"t": tr["t"], "b": tr["b"], "en_t": it["title"], "en_b": it["desc"], "ts": it["ts"], "imp": tr.get("imp", 1), "im": tr.get("im", []),
                  "kind": it.get("kind", "crypto"), "source": {"name": it["source"], "url": it["url"]},
-                 "city": stations_by_url.get(it["url"], "")}
+                 "city": stations_by_url.get(it["url"], ("", ""))[0], "city_en": stations_by_url.get(it["url"], ("", ""))[1]}
         feed.append(entry)
         if age_h > 24:
             continue
@@ -360,7 +363,7 @@ def _brief(items, stations_by_url):
             wgt = tr.get("imp", 1) * x["s"] * (0.5 ** (age_h / 8))   # newer and bigger news weigh more
             agg[x["a"]]["sum"] += x["d"] * wgt
             if x["d"]:
-                agg[x["a"]]["drivers"].append({"t": tr["t"], "w": x["w"], "d": x["d"], "s": x["s"], "ts": it["ts"],
+                agg[x["a"]]["drivers"].append({"t": tr["t"], "en_t": it["title"], "w": x["w"], "we": x.get("we", ""), "d": x["d"], "s": x["s"], "ts": it["ts"],
                                                "url": it["url"], "source": it["source"], "_w": abs(wgt)})
     assets = []
     for key, name in ASSETS:
@@ -372,7 +375,7 @@ def _brief(items, stations_by_url):
         drivers = sorted(a["drivers"], key=lambda x: -x["_w"])[:4]
         for d in drivers:
             d.pop("_w", None)
-        assets.append({"key": key, "name": name, "score": score, "label": label, "drivers": drivers, "count": len(a["drivers"])})
+        assets.append({"key": key, "name": name, "name_en": ASSET_EN[key], "score": score, "label": label, "label_en": LABEL_EN[label], "drivers": drivers, "count": len(a["drivers"])})
     feed.sort(key=lambda x: (-(x["ts"] // 3600), -x["imp"], -x["ts"]))
     return assets, feed[:40]
 
@@ -389,17 +392,20 @@ def _brief_summaries(assets, market_hint):
                for a in assets}
     prompt = (
         "You write the daily 'what is moving the market' brief of a Persian crypto & markets website.\n"
-        "For each asset, write 2 short Persian sentences (max 40 words total) explaining what today's news means for it, "
+        "For each asset, write 2 short sentences (max 40 words total) explaining what today's news means for it, in Persian AND in English, "
         "naming the main driver and the channel of effect. If there are no drivers, say the news flow is quiet for it. "
         "No buy/sell advice, no price targets.\n"
         f"Live market numbers: {market_hint}\n"
-        'Return ONLY JSON: {"BTC": "...", "ETH": "...", "ALT": "...", "GOLD": "...", "OIL": "...", "SPX": "...", "DXY": "..."}\n'
+        'Return ONLY JSON: {"fa": {"BTC": "...", "ETH": "...", "ALT": "...", "GOLD": "...", "OIL": "...", "SPX": "...", "DXY": "..."}, "en": {same keys in English}}\n'
         "DATA: " + json.dumps(payload, ensure_ascii=False))
     try:
-        raw = ai_client.ask(prompt, json_mode=True, max_tokens=1500, timeout=90)
+        raw = ai_client.ask(prompt, json_mode=True, max_tokens=2600, timeout=90)
         m = re.search(r"\{[\s\S]*\}", raw)
         got = json.loads(m.group(0) if m else raw)
-        text = {k: str(v)[:400] for k, v in got.items() if k in ASSET_KEYS and v}
+        fa_ = got.get("fa") if isinstance(got.get("fa"), dict) else got
+        en_ = got.get("en") if isinstance(got.get("en"), dict) else {}
+        text = {k: str(v)[:400] for k, v in fa_.items() if k in ASSET_KEYS and v}
+        text.update({k + "_en": str(v)[:400] for k, v in en_.items() if k in ASSET_KEYS and v})
         if text:
             _brief_ai.update(key=key, text=text, at=time.time())
     except Exception as e:
@@ -429,11 +435,11 @@ def _station_notes(by_station: dict, market_hint: str):
             "stronger dollar or higher Treasury yields -> pressure on crypto; oil up -> inflation -> later Fed cuts -> pressure; "
             "rate cuts / weaker dollar -> supportive; weak local currency (e.g. Turkish lira) -> more local demand for stablecoins and BTC. "
             "Use the live market numbers below when they help. Say 'mixed' when the effect is unclear.\n"
-            'Return ONLY JSON: {"<station id>": [{"c": ["BTC"], "dir": "up"|"down"|"mixed", "n": "Persian, max 25 words", "w": "Persian reason or timing, max 12 words"}]}\n'
+            'Return ONLY JSON: {"<station id>": [{"c": ["BTC"], "dir": "up"|"down"|"mixed", "n": "Persian, max 25 words", "w": "Persian reason or timing, max 12 words", "ne": "the note in English", "we": "the reason in English"}]}\n'
             "Rules: use only the given headlines; no buy/sell advice, no targets, no entry points; if no real market effect use \"mixed\".\n"
             f"Market context: {market_hint}\nDATA: " + json.dumps(part, ensure_ascii=False))
         try:
-            raw = ai_client.ask(prompt, json_mode=True, max_tokens=2000, timeout=90)
+            raw = ai_client.ask(prompt, json_mode=True, max_tokens=3200, timeout=90)
             m = re.search(r"\{[\s\S]*\}", raw)
             got = json.loads(m.group(0) if m else raw)
             for sid in part:
@@ -493,17 +499,19 @@ def _build():
     ai_ok = bool(ai_client.provider()) and _state["error"] is None
     city = {}
     for sid, lst in by_station.items():
-        name = next((x["fa"] for x in snap["stations"] if x["id"] == sid), "")
+        st_ = next((x for x in snap["stations"] if x["id"] == sid), {})
         for it in lst:
-            city[it["url"]] = name
+            city[it["url"]] = (st_.get("fa", ""), st_.get("en", ""))
     for it in recent:
         if it["url"] not in city:
             sid = it.get("fixed") or classify(it["title"], it["desc"])
-            city[it["url"]] = next((x["fa"] for x in snap["stations"] if x["id"] == sid), "")
+            st_ = next((x for x in snap["stations"] if x["id"] == sid), {})
+            city[it["url"]] = (st_.get("fa", ""), st_.get("en", ""))
     assets, feed = _brief(recent, city)
     summaries = _brief_summaries(assets, hint)
     for a in assets:
         a["summary"] = summaries.get(a["key"], "")
+        a["summary_en"] = summaries.get(a["key"] + "_en", "")
 
     data = copy.deepcopy(snap)
     for st in data["stations"]:
