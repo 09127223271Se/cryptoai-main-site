@@ -71,10 +71,17 @@ def channel_url(lang: str = "fa") -> str:
 
 
 def music_embed() -> str:
-    """Official Spotify / YouTube embed link for the music button (MUSIC_EMBED_URL in Render). Only those hosts."""
-    url = os.environ.get("MUSIC_EMBED_URL", "https://open.spotify.com/embed/track/52SfGEripRfNemuV3g8QH2?utm_source=generator&theme=0").strip()
-    ok = url.startswith(("https://open.spotify.com/embed/", "https://www.youtube.com/embed/", "https://www.youtube-nocookie.com/embed/"))
-    return url if ok else ""
+    """Official Spotify / YouTube player for the music button. MUSIC_EMBED_URL in Render may be a normal share link
+    (open.spotify.com/track/…, youtube.com/watch?v=…, youtu.be/…) or an embed link; it is turned into an embed link."""
+    import re
+    url = (os.environ.get("MUSIC_EMBED_URL", "") or "https://open.spotify.com/track/52SfGEripRfNemuV3g8QH2").strip()
+    m = re.search(r"open\.spotify\.com/(?:intl-[a-z]+/)?(?:embed/)?(track|album|playlist|episode)/([A-Za-z0-9]+)", url)
+    if m:
+        return f"https://open.spotify.com/embed/{m.group(1)}/{m.group(2)}?utm_source=generator&theme=0"
+    m = re.search(r"(?:youtube\.com/(?:watch\?v=|embed/|shorts/)|youtu\.be/)([A-Za-z0-9_-]{6,})", url)
+    if m:
+        return f"https://www.youtube-nocookie.com/embed/{m.group(1)}"
+    return ""
 
 
 def socials() -> list:
