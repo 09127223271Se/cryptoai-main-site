@@ -1,9 +1,9 @@
-# Wakes the free Render server every 30 minutes so the hourly Telegram agent keeps running.
+# Wakes the free Render server every 10 minutes (Render free sleeps after 15 idle minutes) so the hourly Telegram agent keeps running.
 # It only calls the site; drafts are still sent to you for approval in Telegram.
 name: agent-wakeup
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 jobs:
   ping:

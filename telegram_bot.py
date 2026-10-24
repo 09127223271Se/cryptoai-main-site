@@ -41,6 +41,7 @@ def cfg():
         "admin": os.environ.get("TELEGRAM_ADMIN_CHAT", "").strip(),
         "channel": os.environ.get("TELEGRAM_CHANNEL_ID", "").strip(),
         "every": int(os.environ.get("AUTO_POST_MINUTES", "60") or 0),
+        "auto": os.environ.get("AUTO_PUBLISH", "1").strip() not in ("0", "false", "no", ""),
         "base": os.environ.get("RENDER_EXTERNAL_URL", "").rstrip("/"),
     }
 
@@ -114,28 +115,74 @@ def send_for_approval(text: str, kind: str = "post") -> dict:
 _drafts: dict = {}   # admin message id -> HTML caption (to republish with formatting)
 
 
-def draft_news_now(force: bool = False) -> str:
-    """Pick the most market-moving fresh story, draw its card and send it to the admin for approval."""
+def _remember(url):
+    _seen_urls.add(url)
+    try:   # survives server restarts (kept in the pinned backup file)
+        import pro
+        pro.S["posted_urls"] = (pro.S.get("posted_urls", []) + [url])[-300:]
+        pro.backup()
+    except Exception:
+        pass
+
+
+def _load_seen():
+    try:
+        import pro
+        pro.restore()
+        _seen_urls.update(pro.S.get("posted_urls", []))
+    except Exception:
+        pass
+
+
+def draft_news_now(force: bool = False, breaking_only: bool = False) -> str:
+    """Pick the most market-moving fresh story and draw its card.
+    AUTO_PUBLISH on (default): post it to the channel at once and notify the admin (with a delete button).
+    AUTO_PUBLISH=0: send it to the admin with approve / reject buttons."""
     import post_card
+    _load_seen()
     n, assets = post_card.pick_news(_seen_urls, force=force)
-    if not n:
+    if not n or (breaking_only and n.get("imp", 1) < 3):
         return "خبر تازه‌ای برای پست نبود."
     c = cfg()
     cap = post_card.caption(n, assets)
-    kb = {"inline_keyboard": [[{"text": "✅ تأیید و انتشار", "callback_data": "approve:card"},
-                               {"text": "❌ رد", "callback_data": "reject:card"}]]}
     try:
         png = post_card.render_card(n, assets)
-        msg = send_photo(c["admin"], png, cap, kb)
     except Exception as e:
         _state["last_error"] = f"card: {e}"[:200]
+        png = None
+
+    if c["auto"] and c["channel"]:
+        btns = post_card.channel_buttons()
+        if png:
+            msg = send_photo(c["channel"], png, cap, btns)
+        else:
+            msg = call("sendMessage", chat_id=c["channel"], text=cap, parse_mode="HTML", disable_web_page_preview=True,
+                       **({"reply_markup": btns} if btns else {}))
+        _remember(n["source"]["url"])
+        with _lock:
+            _state["published"] += 1
+            _state["posted"] = ([{"at": time.time(), "text": n.get("t", "")[:200]}] + _state["posted"])[:10]
+            _state["last_draft"], _state["last_draft_at"] = n.get("t", "")[:300], time.time()
+        try:
+            call("sendMessage", chat_id=c["admin"], disable_notification=False,
+                 text=f"📢 پست جدید منتشر شد:\n{n.get('t', '')}",
+                 reply_markup={"inline_keyboard": [[{"text": "🗑 حذف از کانال", "callback_data": f"del:{msg['message_id']}"}]]})
+        except Exception:
+            pass
+        return "پست در کانال منتشر شد."
+
+    kb = {"inline_keyboard": [[{"text": "✅ تأیید و انتشار", "callback_data": "approve:card"},
+                               {"text": "❌ رد", "callback_data": "reject:card"}]]}
+    if png:
+        msg = send_photo(c["admin"], png, cap, kb)
+    else:
         msg = call("sendMessage", chat_id=c["admin"], text=cap, parse_mode="HTML", reply_markup=kb, disable_web_page_preview=True)
     if not c["channel"]:
         call("sendMessage", chat_id=c["admin"], text="(کانال تنظیم نشده: TELEGRAM_CHANNEL_ID)")
     _drafts[msg["message_id"]] = cap
     while len(_drafts) > 50:
         _drafts.pop(next(iter(_drafts)))
-    _seen_urls.add(n["source"]["url"])
+    _remember(n["source"]["url"])
     with _lock:
         _state["drafts_sent"] += 1
         _state["last_draft"], _state["last_draft_at"] = n.get("t", "")[:300], time.time()
@@ -158,6 +205,21 @@ def handle_update(upd: dict) -> None:
         action = (cq.get("data") or "").split(":")[0]
         if action == "noop":
             call("answerCallbackQuery", callback_query_id=cq["id"])
+            return
+        if action == "del":
+            mid = (cq.get("data") or "").split(":")[1]
+            try:
+                call("deleteMessage", chat_id=c["channel"], message_id=int(mid))
+                res = "🗑 از کانال حذف شد"
+            except Exception as e:
+                res = "⚠️ حذف نشد: " + str(e)[:100]
+            call("answerCallbackQuery", callback_query_id=cq["id"], text=res)
+            m0 = cq.get("message") or {}
+            try:
+                call("editMessageReplyMarkup", chat_id=m0["chat"]["id"], message_id=m0["message_id"],
+                     reply_markup={"inline_keyboard": [[{"text": res, "callback_data": "noop"}]]})
+            except Exception:
+                pass
             return
         msg = cq.get("message") or {}
         photo = (msg.get("photo") or [{}])[-1].get("file_id")
@@ -215,7 +277,8 @@ def handle_update(upd: dict) -> None:
         call("sendMessage", chat_id=chat, text=(
             "🤖 ایجنت CryptoAI فعال است\n"
             f"کانال: {c['channel'] or 'تنظیم نشده'}\n"
-            f"پست خودکار: {'هر ' + str(c['every']) + ' دقیقه' if c['every'] else 'خاموش'}\n"
+            f"پست خودکار: {'هر ' + str(c['every']) + ' دقیقه' if c['every'] else 'خاموش'}"
+            f" · {'انتشار مستقیم' if c['auto'] else 'با تأیید شما'} · خبر فوری بلافاصله\n"
             f"پیش‌نویس فرستاده‌شده: {s['drafts_sent']} · منتشرشده: {s['published']} · ردشده: {s['rejected']}\n"
             "دستورها: /news ساخت پست تازه · /status وضعیت"))
 
@@ -241,9 +304,13 @@ def tick(force_check: bool = False) -> str | None:
     ensure_webhook()
     if not c["every"]:
         return None
-    if not force_check and time.time() - _state["last_draft_at"] < c["every"] * 60:
-        return None
+    since = time.time() - _state["last_draft_at"]
     try:
+        if not force_check and since < c["every"] * 60:
+            if since > 20 * 60:            # breaking news (importance 3) does not wait for the hourly slot
+                res = draft_news_now(force=False, breaking_only=True)
+                return res if "نبود" not in res else None
+            return None
         res = draft_news_now(force=False)
         if "نبود" in res:
             _state["last_draft_at"] = time.time() - c["every"] * 60 + 600   # look again in 10 min

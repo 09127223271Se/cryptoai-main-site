@@ -39,7 +39,7 @@ TEHRAN = timezone(timedelta(hours=3, minutes=30))
 
 _lock = threading.Lock()
 S = {"members": {}, "orders": {}, "stars_link": None, "alerted": [], "brief_day": None, "revenue_usdt": 0.0,
-     "restored": False, "backup_at": 0, "last_error": None}
+     "restored": False, "backup_at": 0, "last_error": None, "posted_urls": [], "backup_msg": None}
 
 
 def cfg():
@@ -59,7 +59,7 @@ def ready() -> bool:
 # ------------------------------------------------------------------ backup / restore (pinned in admin chat)
 def _snapshot() -> dict:
     with _lock:
-        return {k: S[k] for k in ("members", "orders", "stars_link", "alerted", "brief_day", "revenue_usdt")}
+        return {k: S[k] for k in ("members", "orders", "stars_link", "alerted", "brief_day", "revenue_usdt", "posted_urls")}
 
 
 def backup():
@@ -68,12 +68,21 @@ def backup():
     try:
         c = tb.cfg()
         data = json.dumps(_snapshot(), ensure_ascii=False).encode()
+        cap = "پشتیبان CryptoAI (این پیام را پاک نکنید)"
+        if S.get("backup_msg"):
+            r = requests.post(tb.API.format(token=c["token"], method="editMessageMedia"),
+                              data={"chat_id": c["admin"], "message_id": S["backup_msg"],
+                                    "media": json.dumps({"type": "document", "media": "attach://f", "caption": cap})},
+                              files={"f": ("cryptoai-pro-backup.json", io.BytesIO(data), "application/json")}, timeout=30)
+            if r.json().get("ok") or "not modified" in r.text:
+                S["backup_at"] = time.time()
+                return
         r = requests.post(tb.API.format(token=c["token"], method="sendDocument"),
-                          data={"chat_id": c["admin"], "caption": "پشتیبان مشترکان CryptoAI Pro (این پیام را پاک نکنید)",
-                                "disable_notification": "true"},
+                          data={"chat_id": c["admin"], "caption": cap, "disable_notification": "true"},
                           files={"document": ("cryptoai-pro-backup.json", io.BytesIO(data), "application/json")}, timeout=30)
         msg = r.json().get("result") or {}
         if msg.get("message_id"):
+            S["backup_msg"] = msg["message_id"]
             tb.call("pinChatMessage", chat_id=c["admin"], message_id=msg["message_id"], disable_notification=True)
         S["backup_at"] = time.time()
     except Exception as e:
@@ -94,7 +103,8 @@ def restore():
         raw = requests.get(f"https://api.telegram.org/file/bot{c['token']}/{f['file_path']}", timeout=20).content
         data = json.loads(raw)
         with _lock:
-            for k in ("members", "orders", "stars_link", "alerted", "brief_day", "revenue_usdt"):
+            S["backup_msg"] = (chat.get("pinned_message") or {}).get("message_id")
+            for k in ("members", "orders", "stars_link", "alerted", "brief_day", "revenue_usdt", "posted_urls"):
                 if k in data:
                     S[k] = data[k]
     except Exception as e:
