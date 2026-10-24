@@ -70,13 +70,24 @@ def channel_url(lang: str = "fa") -> str:
     return f"https://t.me/{ch[1:]}" if ch.startswith("@") else ""
 
 
+def socials() -> list:
+    """Social profile links for the footer (set in Render; Instagram has a default)."""
+    out = []
+    for key, label, default in (("INSTAGRAM_URL", "Instagram", "https://www.instagram.com/cryptoglobalfarsi/"),
+                                ("TIKTOK_URL", "TikTok", ""), ("X_URL", "X", "")):
+        url = os.environ.get(key, default).strip()
+        if url:
+            out.append((label, url))
+    return out
+
+
 def page(name: str, template: str, lang: str = "fa", **extra):
     """Render a page in server mode (links to Flask routes, AI through /api/ai). lang='en' uses templates/en/."""
     pages = PAGES_EN if lang == "en" else PAGES
     alt = (PAGES if lang == "en" else PAGES_EN)[name] if name in PUBLIC else None
     return render_template(
         ("en/" + template) if lang == "en" else template, page=name, mode="server", api_base="", lang=lang,
-        is_admin=is_admin(), channel=channel_url(lang), alt_url=alt,
+        is_admin=is_admin(), channel=channel_url(lang), alt_url=alt, socials=socials(),
         asset=lambda p: url_for("static", filename=p) if p else "/static/",
         link=lambda n: pages[n], **extra,
     )

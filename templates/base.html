@@ -45,6 +45,7 @@
   <main class="main">
     {% block content %}{% endblock %}
   </main>
+  {% if socials %}<div class="site-social">{% for label, url in socials %}<a href="{{ url }}" target="_blank" rel="noopener">{{ label }}</a>{% endfor %}{% if channel %}<a href="{{ channel }}" target="_blank" rel="noopener">Telegram</a>{% endif %}</div>{% endif %}
   <footer class="site-foot">{{ 'CryptoAI · Content on this site is analysis and education, not investment advice.' if EN else 'CryptoAI · محتوای این سایت تحلیلی و آموزشی است و توصیهٔ سرمایه‌گذاری نیست.' }}</footer>
   {% if is_admin %}<script>
     AI.status().then(s => {

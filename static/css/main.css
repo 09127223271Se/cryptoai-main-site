@@ -97,3 +97,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .nav-lang:hover{border-color:var(--brand)}
 .lang-en{--f-display:"Space Grotesk","Inter",system-ui,sans-serif;--f-body:"Inter",system-ui,"Segoe UI",sans-serif}
 .lang-en body,.lang-en{font-family:var(--f-body)}
+
+.site-social{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;padding:18px 16px 0}
+.site-social a{font-size:13px;font-weight:700;color:var(--fg);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:4px 14px}
+.site-social a:hover{border-color:var(--brand);color:var(--brand)}
