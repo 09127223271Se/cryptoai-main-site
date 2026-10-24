@@ -109,10 +109,15 @@ def fetch_rows(symbol: str, interval: str = "1h", limit: int = 240):
             return rows[-limit:], SOURCE_LABEL[src.__name__]
         except Exception as e:  # try the next exchange
             msg = str(e)
-            if "too few" not in msg and "not supported" not in msg and "no data" not in msg and "Invalid" not in msg and "400" not in msg:
+            low = msg.lower()
+            coin_problem = any(k in low for k in ("too few", "not supported", "no data", "invalid", "400", "404",
+                                                  "doesn't exist", "does not exist", "not found", "symbol", "instrument"))
+            if not coin_problem:
                 _down[i] = time.time()      # the exchange itself is unreachable, not just this coin
             errs.append(f"{src.__name__}: {msg[:120]}")
     last_errors[symbol] = errs
+    while len(last_errors) > 50:
+        last_errors.pop(next(iter(last_errors)))
     raise RuntimeError("; ".join(errs))
 
 

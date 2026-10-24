@@ -10,12 +10,12 @@ from jinja2 import Environment, FileSystemLoader
 BASE = os.path.dirname(os.path.abspath(__file__))
 DIST = os.path.join(BASE, "dist")
 PAGES = {"home": ("brief.html", "index.html"), "radio": ("index.html", "radio.html"), "trader": ("trader.html", "trader.html"),
-         "analysis": ("analysis.html", "analysis.html"), "sales": ("sales.html", "sales.html"), "admin": ("index.html", "index.html"), "pro": ("index.html", "index.html")}
+         "analysis": ("analysis.html", "analysis.html"), "sales": ("sales.html", "sales.html"), "admin": ("index.html", "index.html"), "pro": ("index.html", "index.html"), "search": ("index.html", "index.html")}
 
 env = Environment(loader=FileSystemLoader(os.path.join(BASE, "templates")), autoescape=True)
 shutil.rmtree(DIST, ignore_errors=True)
 shutil.copytree(os.path.join(BASE, "static"), os.path.join(DIST, "static"))
-for name, (tpl, out) in [i for i in PAGES.items() if i[0] not in ("admin", "pro")]:
+for name, (tpl, out) in [i for i in PAGES.items() if i[0] not in ("admin", "pro", "search")]:
     html = env.get_template(tpl).render(
         page=name, mode="static", api_base="", is_admin=True, channel="",
         asset=lambda p: "static/" + p,

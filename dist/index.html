@@ -27,6 +27,7 @@
       <a href="radio.html" >کره رادیو</a>
       <a href="trader.html" >تریدر</a>
       <a href="analysis.html" >تحلیل خبر</a>
+      <a href="index.html" >🔍 جستجو</a>
       <a class="nav-pro" href="index.html" >Pro ✦</a>
       <a href="sales.html" >پیدا کردن مشتری</a>
       <a href="index.html" >پنل مدیر</a>
@@ -49,6 +50,10 @@
         <a class="btn big" href="radio.html">گوش دادن به رادیو کریپتو</a>
       </div>
     </div>
+    <form class="hero-search" action="/search" method="get" role="search">
+      <input name="q" type="search" placeholder="جستجوی کوین یا خبر: بیت‌کوین، SOL، فدرال رزرو…" aria-label="جستجو">
+      <button class="btn primary" type="submit">جستجو</button>
+    </form>
     <div class="hero-meta">
       <span class="status" id="updated">در حال خواندن خبرهای تازه…</span>
     </div>
@@ -97,6 +102,7 @@
 </div>
 
   </main>
+  
   <footer class="site-foot">CryptoAI · محتوای این سایت تحلیلی و آموزشی است و توصیهٔ سرمایه‌گذاری نیست.</footer>
   <script>
     AI.status().then(s => {

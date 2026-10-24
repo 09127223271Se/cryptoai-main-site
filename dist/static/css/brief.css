@@ -69,3 +69,19 @@ a.btn.primary{color:var(--brand-ink)}
 .news .more{justify-self:start;background:none;border:0;color:var(--brand);font-size:13px;padding:0}
 .empty{color:var(--muted);padding:20px;text-align:center;border:1px dashed var(--line);border-radius:14px}
 @media (prefers-reduced-motion: reduce){.live-dot{animation:none}}
+
+/* effect lines under each news item: small, coloured, always visible */
+.effects{display:grid;gap:3px;border-top:1px dashed var(--line);padding-top:8px;margin-top:2px}
+.eff{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 6px;background:none;border:0;padding:1px 0;font-size:12.5px;line-height:1.6;text-align:start;color:var(--muted)}
+.eff:hover b{text-decoration:underline}
+.eff .ar{font-size:10px}
+.eff b{font-weight:700}
+.eff .tag{font-weight:600}
+.eff .rs{color:var(--muted);font-weight:400}
+.eff.up .ar,.eff.up b,.eff.up .tag{color:var(--up)}
+.eff.down .ar,.eff.down b,.eff.down .tag{color:var(--down)}
+.eff.none{font-style:normal;color:var(--muted)}
+
+.hero-search{display:flex;gap:8px;max-width:560px;width:100%}
+.hero-search input{flex:1;min-width:0;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-size:15px}
+.hero-search input:focus{outline:0;border-color:var(--brand)}

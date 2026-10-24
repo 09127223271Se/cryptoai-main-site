@@ -37,10 +37,10 @@ app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax",
 if trader_engine.trader_bp is not None:
     app.register_blueprint(trader_engine.trader_bp)      # /api/trader/scan, /api/trader/setup/<coin>
 
-PAGES = {"home": "/", "pro": "/pro", "radio": "/radio", "trader": "/trader", "analysis": "/analysis", "sales": "/sales", "admin": "/admin"}
-PAGES_EN = {"home": "/en", "pro": "/en/pro", "radio": "/en/radio", "trader": "/en/trader", "analysis": "/en/analysis",
+PAGES = {"search": "/search", "home": "/", "pro": "/pro", "radio": "/radio", "trader": "/trader", "analysis": "/analysis", "sales": "/sales", "admin": "/admin"}
+PAGES_EN = {"search": "/en/search", "home": "/en", "pro": "/en/pro", "radio": "/en/radio", "trader": "/en/trader", "analysis": "/en/analysis",
             "sales": "/sales", "admin": "/admin"}
-PUBLIC = ("home", "pro", "radio", "trader", "analysis")
+PUBLIC = ("home", "pro", "radio", "trader", "analysis", "search")
 
 
 # ---------- admin login (password lives only in Render: ADMIN_PASSWORD) ----------
@@ -164,6 +164,103 @@ def trader_page():
 @app.route("/analysis")
 def analysis_page():
     return page("analysis", "analysis.html")
+
+
+# ---------- Search: coins and news ----------
+@app.route("/search")
+def search_page():
+    return page("search", "search.html", q=request.args.get("q", "")[:60])
+
+
+@app.route("/en/search")
+def search_en():
+    return page("search", "search.html", "en", q=request.args.get("q", "")[:60])
+
+
+def _news_pool():
+    """Every analysed story we have: the brief feed plus the radio stations, newest first, no duplicates."""
+    data = news_live.get_stations()
+    feed = list((data.get("brief") or {}).get("feed") or [])
+    seen = {n["source"]["url"] for n in feed}
+    for st in data.get("stations", []):
+        for n in st.get("news", []):
+            if n.get("source", {}).get("url") in seen or not n.get("ts"):
+                continue
+            seen.add(n["source"]["url"])
+            feed.append({"t": n.get("t"), "b": n.get("b"), "en_t": n.get("en_t") or n.get("en", ""), "en_b": n.get("en_b", ""),
+                         "ts": n["ts"], "imp": n.get("imp", 1), "im": n.get("im", []), "kind": n.get("kind", "crypto"),
+                         "source": n["source"], "city": st.get("fa", ""), "city_en": st.get("en", "")})
+    feed.sort(key=lambda x: -(x.get("ts") or 0))
+    return feed
+
+
+@app.route("/api/search")
+def api_search():
+    import coins
+    q = request.args.get("q", "").strip()[:60]
+    if not q:
+        return jsonify({"q": q, "coin": None, "suggest": [], "news": []})
+    if request.args.get("s"):           # typing suggestions only
+        return jsonify({"q": q, "suggest": coins.suggest(q)})
+    sym = coins.find(q)
+    coin = None
+    if sym:
+        en, fa = coins.names(sym)
+        coin = {"sym": sym, "en": en, "fa": fa}
+    ql = q.lower()
+    words = {ql}
+    if sym:
+        en, fa = coins.names(sym)
+        words |= {sym.lower(), en.lower(), fa, fa.replace("\u200c", "")}
+    asset = {"BTC": "BTC", "ETH": "ETH", "PAXG": "GOLD"}.get(sym or "", None)
+    out = []
+    for n in _news_pool():
+        hay = " ".join(str(n.get(k) or "") for k in ("t", "b", "en_t", "en_b")).lower()
+        hit = any((f" {w} " in f" {hay} ") if (w.isascii() and len(w) <= 4) else (w in hay) for w in words if w)
+        if not hit and asset:
+            hit = any(x.get("a") == asset and x.get("d") for x in n.get("im") or [])
+        if hit:
+            out.append(n)
+        if len(out) >= 20:
+            break
+    return jsonify({"q": q, "coin": coin, "suggest": coins.suggest(q), "news": out})
+
+
+@app.route("/api/coin/<sym>")
+def api_coin(sym):
+    """Live chart analysis for any coin: price, trend, support/resistance, 24h probable range. No entry points."""
+    import coins
+    import post_card
+    sym = (coins.find(sym) or "").upper()
+    if not sym:
+        return jsonify({"ok": False, "error": "bad symbol"}), 400
+    en, fa = coins.names(sym)
+    if sym in ("USDT", "USDC", "DAI", "FDUSD"):
+        return jsonify({"ok": True, "stable": True, "sym": sym, "en": en, "fa": fa, "price": 1.0})
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0]
+    hits = _ai_hits["coin:" + ip]
+    while hits and time.time() - hits[0] > 3600:
+        hits.popleft()
+    if len(hits) >= 120:
+        return jsonify({"ok": False, "error": "rate_limited"}), 429
+    hits.append(time.time())
+    scores = {a["key"]: a["score"] for a in (news_live.get_brief().get("assets") or [])}
+    key = sym if sym in ("BTC", "ETH") else "GOLD" if sym == "PAXG" else "ALT"
+    try:
+        ms = post_card.market_state(sym, scores.get(key, 0))
+    except Exception:
+        ms = None
+    if not ms:
+        return jsonify({"ok": False, "error": "not_found", "sym": sym}), 404
+    return jsonify({"ok": True, "sym": sym, "en": en, "fa": fa, "news_key": key, "news_score": scores.get(key, 0),
+                    "price": ms["price"], "ch24": ms["ch24"], "res": ms["res"], "sup": ms["sup"],
+                    "week_high": ms["week_high"], "week_low": ms["week_low"], "rsi": ms["rsi"], "trend": ms["trend"],
+                    "tags": ms["tags"], "tags_en": [post_card.TAG_EN.get(t, t) for t in ms["tags"]],
+                    "verdict": ms["verdict"], "verdict_fa": post_card.VERDICT_FA[ms["verdict"]],
+                    "verdict_en": post_card.VERDICT_EN[ms["verdict"]],
+                    "p05": ms["p05"], "p25": ms["p25"], "p50": ms["p50"], "p75": ms["p75"], "p95": ms["p95"],
+                    "touch_res": ms["touch_res"], "touch_sup": ms["touch_sup"],
+                    "candles": [[int(t), o, h, l, c] for t, o, h, l, c in ms["candles"]]})
 
 
 # ---------- English site ----------

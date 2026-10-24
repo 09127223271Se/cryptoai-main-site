@@ -13,6 +13,10 @@
         <a class="btn big" href="{{ link('radio') }}">Listen to Crypto Radio</a>
       </div>
     </div>
+    <form class="hero-search" action="/en/search" method="get" role="search">
+      <input name="q" type="search" placeholder="Search a coin or news: Bitcoin, SOL, Fed…" aria-label="Search">
+      <button class="btn primary" type="submit">Search</button>
+    </form>
     <div class="hero-meta">
       <span class="status" id="updated">Reading the latest news…</span>
     </div>

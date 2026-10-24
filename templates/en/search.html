@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ 'CryptoAI · Search' if lang == 'en' else 'CryptoAI · جستجو' }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/brief.css') }}"><link rel="stylesheet" href="{{ asset('css/search.css') }}">{% endblock %}
+{% block content %}
+{% set EN = lang == 'en' %}
+<div class="wrap narrow" style="margin-inline:auto">
+  <div class="page-head">
+    <div>
+      <h1>{% if EN %}Search <span>any coin or news</span>{% else %}جستجوی <span>کوین و خبر</span>{% endif %}</h1>
+      <p>{% if EN %}Type a coin (Bitcoin, SOL, PEPE…) or a word (Fed, ETF, oil…). You get the live price, a chart analysis and every related story with its market impact.{% else %}اسم یا نماد یک کوین (بیت‌کوین، SOL، پپه…) یا یک کلمه (فدرال رزرو، ETF، نفت…) را بنویسید؛ قیمت زنده، تحلیل چارت و همهٔ خبرهای مرتبط با اثرشان را می‌بینید.{% endif %}</p>
+    </div>
+  </div>
+  <form class="sbox" id="sform" role="search" action="" method="get">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <input id="q" name="q" type="search" autocomplete="off" value="{{ q }}" placeholder="{{ 'Bitcoin, SOL, Fed, ETF…' if EN else 'بیت‌کوین، SOL، فدرال رزرو، ETF…' }}" aria-label="{{ 'Search' if EN else 'جستجو' }}">
+    <button class="btn primary" type="submit">{{ 'Search' if EN else 'جستجو' }}</button>
+  </form>
+  <div class="sugg" id="sugg" hidden></div>
+  <div class="popular" id="popular">
+    <span class="status">{{ 'Popular:' if EN else 'پرجستجو:' }}</span>
+    {% for s in ['BTC','ETH','SOL','XRP','TON','DOGE','PEPE','TRX'] %}<a class="chip" href="?q={{ s }}">{{ s }}</a>{% endfor %}
+  </div>
+  <section id="coin" class="panel coin" hidden aria-live="polite"></section>
+  <section id="results" hidden>
+    <div class="sec-head"><h2 id="r-title"></h2></div>
+    <div class="feed" id="feed"></div>
+  </section>
+  <p class="status" id="sstatus" role="status"></p>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ asset('js/search.js') }}"></script>{% endblock %}

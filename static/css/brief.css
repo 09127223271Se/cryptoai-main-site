@@ -81,3 +81,7 @@ a.btn.primary{color:var(--brand-ink)}
 .eff.up .ar,.eff.up b,.eff.up .tag{color:var(--up)}
 .eff.down .ar,.eff.down b,.eff.down .tag{color:var(--down)}
 .eff.none{font-style:normal;color:var(--muted)}
+
+.hero-search{display:flex;gap:8px;max-width:560px;width:100%}
+.hero-search input{flex:1;min-width:0;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-size:15px}
+.hero-search input:focus{outline:0;border-color:var(--brand)}
