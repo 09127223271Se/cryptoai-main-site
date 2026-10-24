@@ -96,6 +96,7 @@ def ensure_webhook():
             call("setMyCommands", scope={"type": "chat", "chat_id": int(c["admin"])},
                  commands=[{"command": "news", "description": "ساخت و انتشار پست خبری تازه"},
                            {"command": "status", "description": "وضعیت ربات"},
+                           {"command": "kit", "description": "بستهٔ اینستاگرام و تیک‌تاک"},
                            {"command": "invite", "description": "لینک دعوت من"},
                            {"command": "me", "description": "امتیاز من"}])
         except Exception:
@@ -319,6 +320,13 @@ def handle_update(upd: dict) -> None:
             import growth
             growth.on_private(m)
         return
+    if txt.startswith("/kit"):
+        call("sendMessage", chat_id=chat, text="⏳ در حال ساختن بستهٔ اینستاگرام و تیک‌تاک…")
+        def _kit():
+            import social
+            return social.send_kit()
+        threading.Thread(target=lambda: _safe_reply(chat, _kit), daemon=True).start()
+        return
     if txt.startswith("/news"):
         call("sendMessage", chat_id=chat, text="⏳ در حال ساختن پست از خبرهای زنده…")
         threading.Thread(target=lambda: _safe_reply(chat, lambda: draft_news_now(force=True)), daemon=True).start()
@@ -387,6 +395,11 @@ def start_loop():
                 pro.tick()
             except Exception as e:
                 _state["last_error"] = "pro: " + str(e)[:180]
+            try:
+                import social
+                social.tick()
+            except Exception as e:
+                _state["last_error"] = "social: " + str(e)[:180]
             try:
                 import growth
                 growth.tick()
