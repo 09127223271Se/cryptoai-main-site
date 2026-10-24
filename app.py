@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from flask import Flask, jsonify, render_template, request, url_for
 
 import ai_client
+import news_live
 import trader_engine
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -69,6 +70,7 @@ def health():
         "ai_provider": ai_client.provider(),
         "telegram": bool(os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_ADMIN_CHAT")),
         "market_data_errors": dict(list(trader_engine.last_errors.items())[:5]),
+        "news": news_live.status(),
     })
 
 
@@ -96,8 +98,8 @@ def ai_ask():
 # ---------- Radio globe ----------
 @app.route("/api/stations")
 def api_stations():
-    with open(STATIONS_FILE, encoding="utf-8") as f:
-        return jsonify(json.load(f))
+    """Live news per station (refreshed in the background every 10 min), snapshot until the first refresh lands."""
+    return jsonify(news_live.get_stations())
 
 
 # ---------- Trader ----------

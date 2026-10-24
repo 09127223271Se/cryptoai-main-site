@@ -18,6 +18,7 @@ function fmt(p){
   if(a>=0.01)return p.toFixed(4);
   return p.toPrecision(3);
 }
+const fmtX = p => p>=1 ? p.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:p>=10?2:4}) : p.toPrecision(4);
 const pct = x => (x>=0?"+":"")+(x*100).toFixed(2)+"%";
 const L = x => "\u2066"+x+"\u2069";
 
@@ -159,20 +160,35 @@ async function loadLive(){
   if(window.SITE_MODE!=="server")return false;
   try{
     const syms=COINS.map(c=>c[0]).join(",");
-    const r=await fetch(window.API_BASE+"/api/trader/candles?interval=1h&limit=240&symbols="+syms);
+    const ac=new AbortController(),to=setTimeout(()=>ac.abort(),25000);
+    const r=await fetch(window.API_BASE+"/api/trader/candles?interval=1h&limit=240&symbols="+syms,{signal:ac.signal});clearTimeout(to);
     const j=await r.json();
     if(!j.ok)return false;
     const list=[];
     for(const [sym] of COINS){const rows=j.data[sym];if(!rows||rows.length<200)continue;
       list.push(analyze(sym,rows.map(x=>({t:x[0],o:x[1],h:x[2],l:x[3],c:x[4],v:x[5]}))))}
-    if(list.length<5)return false;
+    if(list.length<5)return await loadFromBrowser();
     state.list=list;state.source="live";state.fetched=j.fetched_at;state.liveSource=j.source||"";return true;
+  }catch(e){return await loadFromBrowser()}
+}
+/* fallback: the visitor's browser asks Binance directly (works even if the server's network is blocked) */
+async function loadFromBrowser(){
+  try{
+    const one=async sym=>{
+      const r=await fetch(`https://data-api.binance.vision/api/v3/klines?symbol=${sym}USDT&interval=1h&limit=240`);
+      if(!r.ok)return null;const k=await r.json();
+      return k.length>=200?analyze(sym,k.map(x=>({t:x[0]/1000,o:+x[1],h:+x[2],l:+x[3],c:+x[4],v:+x[5]}))):null;
+    };
+    const res=await Promise.all(COINS.map(c=>one(c[0]).catch(()=>null)));
+    const list=res.filter(Boolean);
+    if(list.length<5)return false;
+    state.list=list;state.source="live";state.fetched=new Date().toISOString();state.liveSource="Binance";return true;
   }catch(e){return false}
 }
 function setDataPill(){
   const p=$("data-pill");
   if(state.source==="live"){p.className="pill live";const t=state.fetched?new Date(state.fetched).toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"}):"";p.textContent="دادهٔ زنده · "+(state.liveSource||"")+" · "+t}
-  else{p.className="pill warn";p.textContent=window.SITE_MODE==="server"?"Binance در دسترس نبود؛ دادهٔ نمونه":"پیش‌نمایش: دادهٔ نمونه، قیمت‌ها واقعی نیستند"}
+  else{p.className="pill warn";p.textContent=window.SITE_MODE==="server"?"دادهٔ زنده در دسترس نبود؛ دادهٔ نمونه":"پیش‌نمایش: دادهٔ نمونه، قیمت‌ها واقعی نیستند"}
 }
 
 /* ---------- canvas helpers ---------- */
@@ -194,7 +210,7 @@ function renderGrid(){
     const show=state.filter==="all"||(state.filter==="hit"&&has)||(state.filter==="up"&&a.bias===1)||(state.filter==="down"&&a.bias===-1);
     const b=document.createElement("button");b.className="tile"+(show?"":" dim");b.type="button";
     b.setAttribute("aria-current",i===state.sel?"true":"false");
-    b.innerHTML=`<div class="r1"><span class="sym">${a.sym}</span><span class="chg num ${a.chg>=0?"up":"down"}">${pct(a.chg)}</span></div><canvas></canvas><div class="tags"></div>`;
+    b.dataset.sym=a.sym;b.innerHTML=`<div class="r1"><span class="sym">${a.sym}</span><span class="chg num ${a.chg>=0?"up":"down"}">${pct(a.chg)}</span></div><canvas></canvas><div class="tags"></div>`;
     const tg=b.querySelector(".tags");
     a.tags.slice(0,2).forEach(t=>{const s=document.createElement("span");s.className="chip "+(t.dir>0?"up":t.dir<0?"down":"flat");s.textContent=t.label;tg.append(s)});
     b.onclick=()=>select(i);
@@ -211,8 +227,9 @@ function renderSheet(){
   const a=state.list[state.sel];
   $("s-name").innerHTML=`${a.sym} <small>/ ${a.csv?"CSV":"USDT"}</small>`;
   const [bt,bc]=biasTxt(a.bias);const bb=$("s-bias");bb.className="bias "+bc;bb.textContent="جهت ساختار: "+bt;
-  $("c-price").textContent=fmt(a.last);
-  const ce=$("c-chg");ce.className="s num "+(a.chg>=0?"up":"down");ce.textContent=pct(a.chg)+" (24h)";
+  const lp=a.livePrice||a.last,lc=a.liveChg!==undefined?a.liveChg:a.chg;
+  $("c-price").textContent=fmtX(lp);
+  const ce=$("c-chg");ce.className="s num "+(lc>=0?"up":"down");ce.textContent=pct(lc)+" (24h)"+(a.livePrice?" · لحظه‌ای":"");
   $("c-res").textContent=fmt(a.rh);$("c-res-d").textContent=pct(a.rh/a.last-1)+" تا قیمت فعلی";
   $("c-sup").textContent=fmt(a.rl);$("c-sup-d").textContent=pct(a.rl/a.last-1)+" تا قیمت فعلی";
   const f=$("findings");f.textContent="";
@@ -423,6 +440,18 @@ let rz;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{drawMa
   const firstHit=state.list.findIndex(a=>a.tags.some(t=>t.id==="bo_up"||t.id==="dbl_b"));
   select(firstHit>=0?firstHit:0);
   if(state.source==="live"){
+    // tick-by-tick price from the exchange for every tile and the setup card
+    const flash=(el,up)=>{el.style.transition="none";el.style.color=up?"var(--up)":"var(--down)";requestAnimationFrame(()=>{el.style.transition="color 1.2s";el.style.color=""})};
+    LivePrices.subscribe(COINS.map(c=>c[0]),(sym,v)=>{
+      const a=state.list.find(x=>x.sym===sym&&!x.csv);if(!a)return;
+      const prev=a.livePrice||a.last;a.livePrice=v.price;if(isFinite(v.chg24h))a.liveChg=v.chg24h;
+      const t=document.querySelector(`.tile[data-sym="${sym}"] .chg`);
+      if(t&&isFinite(v.chg24h)){t.textContent=pct(v.chg24h);t.className="chg num "+(v.chg24h>=0?"up":"down")}
+      if(state.list[state.sel]===a){
+        const cp=$("c-price");cp.textContent=fmtX(v.price);if(v.price!==prev)flash(cp,v.price>prev);
+        if(isFinite(v.chg24h)){const ce=$("c-chg");ce.className="s num "+(v.chg24h>=0?"up":"down");ce.textContent=pct(v.chg24h)+" (24h) · لحظه‌ای "+v.source}
+      }
+    },st=>{if(st.live){state.liveSource=st.source;setDataPill()}});
     // refresh live candles every 2 minutes, keep the selected coin
     setInterval(async()=>{
       if(document.hidden)return;

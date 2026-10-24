@@ -24,11 +24,19 @@ static/js/          ai.js (اتصال مشترک به AI)، radio.js، trader.js
 static/data/stations.json   ایستگاه‌ها، خبرها و نکته‌ها (به‌روز تا ۲ آبان ۱۴۰۵)
 ```
 
+## دادهٔ زنده
+
+- **قیمت لحظه‌ای:** مرورگر بازدیدکننده مستقیم به WebSocket بازار Binance وصل می‌شود (هر معامله، حدود هر ثانیه). اگر وصل نشد Coinbase، و در آخر `/api/prices` هر ۱۰ ثانیه.
+- **کندل‌های تریدر:** سرور به‌ترتیب از Binance، OKX، Bybit و Coinbase می‌گیرد. اگر سرور به هیچ‌کدام نرسید، مرورگر مستقیم از Binance می‌گیرد. هر ۲ دقیقه به‌روز می‌شود.
+- **خبرها (`news_live.py`):** هر ۱۰ دقیقه از RSS سایت‌های CoinDesk، Cointelegraph، Decrypt، The Block، Bitcoin Magazine و CryptoSlate. هر خبر بر اساس کشور یا موضوعش به ایستگاه مربوط روی کره می‌رود. Groq عنوان و خلاصهٔ فارسی و نکته‌های بالا/پایین را می‌نویسد. لینک و زمان دقیق هر خبر کنارش است.
+- **ساعت:** ساعت محلی هر شهر و ساعت بازدیدکننده، ثانیه‌به‌ثانیه.
+
 ## API
 
 - `GET  /api/health` — وضعیت سرور، AI و تلگرام
 - `GET  /api/ai/status` و `POST /api/ai` — هوش مصنوعی سایت
-- `GET  /api/stations` — داده‌های کرهٔ رادیو
+- `GET  /api/stations` — ایستگاه‌ها با خبرهای زنده
+- `GET  /api/prices?symbols=BTC,ETH` — قیمت و تغییر ۲۴ ساعت
 - `GET  /api/trader/candles?symbols=BTC,ETH&interval=1h&limit=240` — کندل زندهٔ Binance (۶۰ ثانیه کش)
 - `GET  /api/trader/scan` و `GET /api/trader/setup/<COIN>` — اسکن و ستاپ از سمت سرور
 - `POST /api/trader/send` — ارسال پست به ربات برای تأیید (دکمهٔ تأیید/رد)

@@ -5,48 +5,63 @@ const $ = id => document.getElementById(id);
 
 /* ---------------- data ---------------- */
 let DATA;
-try {
-  const url = window.SITE_MODE === "server" ? (window.API_BASE + "/api/stations") : (window.ASSET_BASE + "data/stations.json");
-  DATA = await (await fetch(url)).json();
-} catch (e) {
-  $("st-name").textContent = "داده‌های ایستگاه بارگذاری نشد";
-  return;
+const dataUrl = window.SITE_MODE === "server" ? (window.API_BASE + "/api/stations") : (window.ASSET_BASE + "data/stations.json");
+try { DATA = await (await fetch(dataUrl)).json(); }
+catch (e) { $("st-name").textContent = "داده‌های ایستگاه بارگذاری نشد"; return; }
+let STATIONS = DATA.stations.filter(s => s.news && s.news.length);
+const faTime = (d, tz, sec) => new Intl.DateTimeFormat("fa-IR", { hour: "2-digit", minute: "2-digit", second: sec ? "2-digit" : undefined, hour12: false, timeZone: tz }).format(d);
+function ago(ts) {
+  const m = Math.max(0, Math.round((Date.now() / 1000 - ts) / 60));
+  if (m < 1) return "همین الان"; if (m < 60) return m.toLocaleString("fa-IR") + " دقیقه پیش";
+  const h = Math.floor(m / 60); if (h < 24) return h.toLocaleString("fa-IR") + " ساعت پیش";
+  return Math.floor(h / 24).toLocaleString("fa-IR") + " روز پیش";
 }
-const STATIONS = DATA.stations;
-$("updated").textContent = `اخبار کریپتو از هر گوشهٔ دنیا · به‌روز تا ${DATA.updated_fa} (${DATA.updated})`;
+function renderUpdated() {
+  const el = $("updated");
+  if (DATA.live) {
+    const t = new Date(DATA.updated);
+    el.textContent = `خبرهای زنده از ${(DATA.feeds || []).join("، ")} · آخرین به‌روزرسانی ${faTime(t, undefined, false)} (هر ۱۰ دقیقه)`;
+  } else if (DATA.refreshing) {
+    el.textContent = "در حال گرفتن خبرهای زنده… تا آن موقع خبرهای ذخیره‌شده نمایش داده می‌شوند.";
+  } else {
+    el.textContent = `اخبار کریپتو از هر گوشهٔ دنیا · به‌روز تا ${DATA.updated_fa} (${DATA.updated})`;
+  }
+}
+renderUpdated();
+
+/* ---------------- live prices (tick by tick from the exchange) ---------------- */
 const tk = $("ticker");
-function fmtPrice(p) { return p >= 1000 ? "$" + p.toLocaleString("en-US", { maximumFractionDigits: 0 }) : p >= 1 ? "$" + p.toFixed(2) : "$" + p.toPrecision(3); }
-function showSnapshot() {
-  tk.textContent = "";
-  (DATA.market || []).forEach(m => {
-    const s = document.createElement("span"); s.className = "pill";
-    s.innerHTML = `${m.c} <b class="num"></b> <small class="num"></small>`;
-    s.querySelector("b").textContent = "≈ " + m.p; s.querySelector("small").textContent = DATA.market_date || "";
-    tk.append(s);
-  });
-}
-async function showLive() {
-  try {
-    const j = await (await fetch(window.API_BASE + "/api/prices?symbols=BTC,ETH,BNB,SOL")).json();
-    if (!j.ok) return false;
-    tk.textContent = "";
-    j.prices.forEach(p => {
-      const s = document.createElement("span"); s.className = "pill live";
-      s.innerHTML = `${p.c} <b class="num"></b> <small class="num"></small>`;
-      s.querySelector("b").textContent = fmtPrice(p.price);
-      const sm = s.querySelector("small"); sm.textContent = (p.chg24h >= 0 ? "+" : "") + (p.chg24h * 100).toFixed(2) + "%";
-      sm.style.color = p.chg24h >= 0 ? "var(--up)" : "var(--down)";
-      tk.append(s);
-    });
-    const t = document.createElement("span"); t.className = "pill"; t.textContent = "زنده · " + j.source; tk.append(t);
-    DATA.liveMarket = j.prices.map(p => `${p.c} ${fmtPrice(p.price)} (${(p.chg24h * 100).toFixed(2)}% 24h)`).join(", ");
-    return true;
-  } catch (e) { return false; }
-}
-showSnapshot();
+const TICK = ["BTC", "ETH", "BNB", "SOL"];
+function fmtPrice(p) { return p >= 1 ? "$" + p.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "$" + p.toPrecision(4); }
+const pills = {};
+TICK.forEach(c => {
+  const s = document.createElement("span"); s.className = "pill";
+  s.innerHTML = `${c} <b class="num">…</b> <small class="num"></small>`;
+  tk.append(s); pills[c] = s;
+});
+const srcPill = document.createElement("span"); srcPill.className = "pill"; srcPill.textContent = "در حال اتصال به صرافی…"; tk.append(srcPill);
+const clockPill = document.createElement("span"); clockPill.className = "pill num"; tk.append(clockPill);
+const marketNow = {};
 if (window.SITE_MODE === "server") {
-  showLive();
-  setInterval(() => { if (!document.hidden) showLive(); }, 60000);
+  LivePrices.subscribe(TICK, (sym, v) => {
+    const s = pills[sym]; if (!s) return;
+    marketNow[sym] = v;
+    const b = s.querySelector("b"), prev = parseFloat((b.dataset.p || "0"));
+    b.textContent = fmtPrice(v.price); b.dataset.p = v.price;
+    b.style.color = v.price > prev && prev ? "var(--up)" : v.price < prev ? "var(--down)" : "";
+    const sm = s.querySelector("small");
+    if (isFinite(v.chg24h)) { sm.textContent = (v.chg24h >= 0 ? "+" : "") + (v.chg24h * 100).toFixed(2) + "%"; sm.style.color = v.chg24h >= 0 ? "var(--up)" : "var(--down)"; }
+    s.className = "pill live";
+  }, st => { srcPill.textContent = st.live ? "قیمت لحظه‌ای · " + st.source : "قیمت زنده در دسترس نیست"; });
+} else {
+  (DATA.market || []).forEach(m => { if (pills[m.c]) { pills[m.c].querySelector("b").textContent = "≈ " + m.p; pills[m.c].querySelector("small").textContent = DATA.market_date || ""; } });
+  srcPill.textContent = "پیش‌نمایش · قیمت ذخیره‌شده";
+}
+function tickClock() {
+  const now = new Date();
+  clockPill.textContent = "ساعت شما " + faTime(now, undefined, true);
+  if (selected) $("st-clock").textContent = "ساعت محلی " + selected.fa + ": " + faTime(now, selected.tz, true);
+  document.querySelectorAll("#news .ago").forEach(el => { el.textContent = ago(+el.dataset.ts); });
 }
 
 /* ---------------- globe ---------------- */
@@ -170,7 +185,7 @@ function speakStation(s) {
   const pv = pickVoice();
   $("voice").textContent = pv.lang === "fa" ? "پخش با صدای فارسی دستگاه" : (voices.length ? "صدای فارسی روی این دستگاه نیست؛ نسخهٔ انگلیسی پخش می‌شود" : "در حال پخش…");
   const parts = [{ txt: pv.lang === "fa" ? `این‌جا رادیو کریپتو، ${s.fa}.` : `This is Crypto Radio, ${s.en}.`, i: -1 }];
-  s.news.forEach((n, i) => parts.push({ txt: pv.lang === "fa" ? n.t + ". " + n.b : n.en, i }));
+  s.news.forEach((n, i) => parts.push({ txt: pv.lang === "fa" && n.lang !== "en" ? n.t + ". " + n.b : n.en, i }));
   setPlaying(true);
   parts.forEach((p, k) => {
     const u = new SpeechSynthesisUtterance(p.txt); u.lang = pv.lang === "fa" ? "fa-IR" : "en-US"; if (pv.v) u.voice = pv.v;
@@ -203,11 +218,15 @@ function renderSheet(s) {
   const nb = $("news"); nb.textContent = "";
   s.news.forEach(n => {
     const d = document.createElement("div"); d.className = "item";
-    d.innerHTML = `<b></b><p></p><div class="meta"><span class="num"></span><a target="_blank" rel="noopener"></a></div>`;
+    d.innerHTML = `<b></b><p></p><div class="meta"><span class="num"></span><span class="ago"></span><a target="_blank" rel="noopener"></a></div>`;
+    if (n.lang === "en") { d.querySelector("b").dir = "ltr"; d.querySelector("p").dir = "ltr"; }
     d.querySelector("b").textContent = n.t; d.querySelector("p").textContent = n.b; d.querySelector(".num").textContent = n.d;
+    if (n.ts) { const ag = d.querySelector(".ago"); ag.dataset.ts = n.ts; ag.textContent = ago(n.ts); }
     const a = d.querySelector("a"); a.textContent = n.source.name; a.href = n.source.url; nb.append(d);
   });
-  renderNotes(s.notes, `تحلیل Claude هنگام جمع‌آوری خبرها (${DATA.updated_fa})`);
+  if (s.live) renderNotes(s.notes, s.notes.length ? "تحلیل هوش مصنوعی روی خبرهای زنده" : "برای این خبرها هنوز تحلیلی نیامده؛ «تحلیل دوباره» را بزنید.");
+  else renderNotes(s.notes, `تحلیل Claude هنگام جمع‌آوری خبرها (${DATA.updated_fa})`);
+  tickClock();
 }
 function renderDial() {
   const d = $("dial"); d.textContent = "";
@@ -233,7 +252,8 @@ $("reanalyze").onclick = async () => {
   if (!selected) return; const s = selected;
   if (ctl) ctl.abort(); ctl = new AbortController();
   $("reanalyze").disabled = true; $("ai-s").textContent = "هوش مصنوعی در حال تحلیل اثر خبرها…";
-  const m = DATA.liveMarket ? "live now: " + DATA.liveMarket : (DATA.market || []).map(x => `${x.c} ${x.p}`).join(", ") + " (" + DATA.market_date + ")";
+  const live = Object.entries(marketNow).map(([c, v]) => `${c} ${fmtPrice(v.price)} (${(v.chg24h * 100).toFixed(2)}% 24h)`).join(", ");
+  const m = live ? "live now: " + live : (DATA.market || []).map(x => `${x.c} ${x.p}`).join(", ") + " (" + DATA.market_date + ")";
   const prompt = `You are a crypto market analyst for a Persian-language Telegram channel.
 Below are recent news items from one region (${s.en}). Decide which coins or market segments each item could move, and in which direction.
 Reply with ONLY a JSON array (max 4 objects) like:
@@ -257,4 +277,19 @@ const start = STATIONS.find(s => s.id === location.hash.slice(1)) || STATIONS[0]
 selected = start; renderSheet(start); renderDial();
 rot = [-start.lon + 25, -start.lat + 8, 0]; flyTo(start); lastInteract = performance.now() + 2000;
 requestAnimationFrame(frame);
+setInterval(tickClock, 1000); tickClock();
+
+/* refresh live news every 2 minutes (the server refreshes its feeds every 10) */
+if (window.SITE_MODE === "server") {
+  setInterval(async () => {
+    if (document.hidden) return;
+    try {
+      const j = await (await fetch(dataUrl)).json();
+      if (!j.stations || (j.updated === DATA.updated && j.live === DATA.live)) return;
+      DATA = j; STATIONS = j.stations.filter(s => s.news && s.news.length);
+      const keep = STATIONS.find(s => s.id === (selected && selected.id)) || STATIONS[0];
+      selected = keep; renderUpdated(); renderDial(); if (!playing) renderSheet(keep);
+    } catch (e) {}
+  }, DATA.live ? 120000 : 20000);
+}
 })();
