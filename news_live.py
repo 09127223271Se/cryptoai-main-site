@@ -119,24 +119,69 @@ def _dedupe(items):
     return out
 
 
-def _ai_enrich(by_station: dict, market_hint: str):
-    """One AI call: Persian title + summary per item, and up to 3 impact notes per station."""
-    payload = {sid: [{"i": k, "title": it["title"], "desc": it["desc"][:220]} for k, it in enumerate(items)]
-               for sid, items in by_station.items() if items}
-    if not payload:
-        return {}
-    prompt = f"""You translate and analyse crypto news for a Persian radio website.
-Input: news items grouped by station id. Use ONLY the information in each title/desc. Do not add facts, numbers or names that are not there.
-Return ONLY JSON in this exact shape:
-{{"<station id>": {{"items": [{{"i": <index>, "t": "Persian title, max 14 words", "b": "Persian summary, 1-2 sentences, only from the given text"}}],
-                  "notes": [{{"c": ["BTC"], "dir": "up"|"down"|"mixed", "n": "Persian, max 25 words: likely market effect", "w": "Persian reason/timing, max 12 words"}}]}}}}
-Rules for notes: max 3 per station; no buy/sell advice, no targets, no entry points; if no real market effect use "mixed".
-Market context: {market_hint}
-DATA:
-{json.dumps(payload, ensure_ascii=False)}"""
-    raw = ai_client.ask(prompt, json_mode=True, max_tokens=6000, timeout=120)
-    m = re.search(r"\{[\s\S]*\}", raw)
-    return json.loads(m.group(0) if m else raw)
+_tr_cache: dict = {}      # url -> {"t": fa title, "b": fa summary}   (each headline is translated once)
+_notes_cache: dict = {}   # station id -> {"key": urls, "notes": [...], "at": time}
+NOTES_MIN_AGE = 1800      # re-analyse a station at most every 30 min unless its headlines changed
+
+
+def _translate(items):
+    """Persian title + summary for headlines not translated yet. Small batches so no answer is cut off."""
+    todo = [it for it in items if it["url"] not in _tr_cache]
+    for k in range(0, len(todo), 8):
+        batch = todo[k:k + 8]
+        payload = [{"i": j, "title": it["title"], "desc": it["desc"][:240]} for j, it in enumerate(batch)]
+        prompt = (
+            "Translate these crypto news headlines into fluent, natural Persian (Farsi) for a news radio.\n"
+            "For each item give a Persian title (max 14 words) and a Persian summary of 1-2 sentences using ONLY the given text.\n"
+            "Keep coin tickers, company and person names in Latin letters where Persian readers expect them.\n"
+            'Return ONLY JSON: {"items": [{"i": 0, "t": "...", "b": "..."}]}\n'
+            "ITEMS: " + json.dumps(payload, ensure_ascii=False))
+        try:
+            raw = ai_client.ask(prompt, json_mode=True, max_tokens=2500, timeout=90)
+            m = re.search(r"\{[\s\S]*\}", raw)
+            got = json.loads(m.group(0) if m else raw).get("items", [])
+            for x in got:
+                j = x.get("i")
+                if isinstance(j, int) and 0 <= j < len(batch) and x.get("t"):
+                    _tr_cache[batch[j]["url"]] = {"t": str(x["t"]).strip(), "b": str(x.get("b") or "").strip()}
+        except Exception as e:
+            _state["error"] = f"AI translate: {str(e)[:160]}"
+    if len(_tr_cache) > 3000:
+        for key in list(_tr_cache)[:1000]:
+            _tr_cache.pop(key, None)
+
+
+def _station_notes(by_station: dict, market_hint: str):
+    """Up/down notes per station, only for stations whose headlines changed (or older than 30 min)."""
+    now = time.time()
+    need = {}
+    for sid, items in by_station.items():
+        if not items:
+            continue
+        key = "|".join(it["url"] for it in items)
+        c = _notes_cache.get(sid)
+        if c and (c["key"] == key or now - c["at"] < NOTES_MIN_AGE):
+            continue
+        need[sid] = items
+    sids = list(need)
+    for k in range(0, len(sids), 4):
+        part = {sid: [{"title": it["title"], "desc": it["desc"][:160]} for it in need[sid]] for sid in sids[k:k + 4]}
+        prompt = (
+            "You are a crypto market analyst for a Persian radio. For each station id, read its headlines and write up to 3 notes "
+            "on which coins or market segments could move and in which direction.\n"
+            'Return ONLY JSON: {"<station id>": [{"c": ["BTC"], "dir": "up"|"down"|"mixed", "n": "Persian, max 25 words", "w": "Persian reason or timing, max 12 words"}]}\n'
+            "Rules: use only the given headlines; no buy/sell advice, no targets, no entry points; if no real market effect use \"mixed\".\n"
+            f"Market context: {market_hint}\nDATA: " + json.dumps(part, ensure_ascii=False))
+        try:
+            raw = ai_client.ask(prompt, json_mode=True, max_tokens=2000, timeout=90)
+            m = re.search(r"\{[\s\S]*\}", raw)
+            got = json.loads(m.group(0) if m else raw)
+            for sid in part:
+                notes = [n for n in (got.get(sid) or []) if isinstance(n, dict) and n.get("n")][:3]
+                if notes:
+                    _notes_cache[sid] = {"key": "|".join(it["url"] for it in need[sid]), "notes": notes, "at": now}
+        except Exception as e:
+            _state["error"] = f"AI notes: {str(e)[:160]}"
 
 
 def _market_hint():
@@ -170,13 +215,12 @@ def _build():
         if sid in by_station and len(by_station[sid]) < PER_STATION:
             by_station[sid].append(it)
 
-    enriched, ai_ok = {}, False
+    ai_ok = False
     if ai_client.provider():
-        try:
-            enriched = _ai_enrich(by_station, _market_hint())
-            ai_ok = True
-        except Exception as e:
-            _state["error"] = f"AI: {e}"
+        _state["error"] = None
+        _translate([it for items in by_station.values() for it in items])
+        _station_notes(by_station, _market_hint())
+        ai_ok = _state["error"] is None
 
     data = copy.deepcopy(snap)
     for st in data["stations"]:
@@ -184,11 +228,9 @@ def _build():
         if not live:
             st["live"] = False
             continue
-        e = enriched.get(st["id"]) or {}
-        tr = {x.get("i"): x for x in (e.get("items") or []) if isinstance(x, dict)}
         news = []
-        for k, it in enumerate(live):
-            fa = tr.get(k) or {}
+        for it in live:
+            fa = _tr_cache.get(it["url"]) or {}
             news.append({
                 "d": datetime.fromtimestamp(it["ts"], timezone.utc).strftime("%d %b %H:%M UTC"),
                 "ts": it["ts"],
@@ -199,8 +241,7 @@ def _build():
                 "source": {"name": it["source"], "url": it["url"]},
             })
         st["news"] = news
-        notes = [n for n in (e.get("notes") or []) if isinstance(n, dict) and n.get("n")]
-        st["notes"] = notes[:3] if notes else []
+        st["notes"] = (_notes_cache.get(st["id"]) or {}).get("notes", [])
         st["live"] = True
     now = datetime.now(timezone.utc)
     data["live"] = True
@@ -217,8 +258,9 @@ def _refresh():
         data, feeds_ok, ai_ok = _build()
         with _lock:
             _state.update(data=data, at=time.time(), feeds_ok=feeds_ok, ai=ai_ok)
-            if ai_ok or not ai_client.provider():
-                _state["error"] = None
+            untranslated = any(n.get("lang") == "en" for st in data["stations"] for n in st.get("news", []))
+            if untranslated and ai_client.provider():
+                _state["at"] = time.time() - REFRESH_SEC + 120   # try the missing translations again in 2 minutes
     except Exception as e:
         with _lock:
             _state["error"] = str(e)[:300]

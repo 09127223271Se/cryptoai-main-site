@@ -93,34 +93,134 @@ function decodeEcharts(json) {
   }
   return feats.length ? { type: "GeometryCollection", geometries: feats } : null;
 }
-let land = null;
-try { land = decodeEcharts(window.__worldGeo); } catch (e) { land = null; }
-if (!land) $("mapnote").hidden = false;
-
 let rot = [-20, -20, 0], auto = true, lastInteract = 0, selected = null, tween = null;
 const t0 = performance.now();
 function resize() {
   const r = box.getBoundingClientRect(); dpr = window.devicePixelRatio || 1; W = r.width; H = r.height;
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); R = Math.min(W, H) * .44;
 }
+let land = null;
+try { land = decodeEcharts(window.__worldGeo); } catch (e) { land = null; }
+
+/* ---- satellite Earth texture (NASA Blue Marble, equirectangular), drawn per pixel with lighting ---- */
+const TEX_URLS = [
+  "https://cdn.jsdelivr.net/npm/three-globe@2.31.0/example/img/earth-blue-marble.jpg",
+  "https://unpkg.com/three-globe@2.31.0/example/img/earth-blue-marble.jpg",
+  "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+];
+let tex = null;              // {d: Uint8ClampedArray, w, h}
+let texTried = false;
+function loadTexture(i = 0) {
+  if (i >= TEX_URLS.length) { texTried = true; if (!land) $("mapnote").hidden = false; return; }
+  const img = new Image(); img.crossOrigin = "anonymous"; img.decoding = "async";
+  img.onload = () => {
+    try {
+      const w = Math.min(img.naturalWidth, 2048), h = Math.round(w / 2);
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(img, 0, 0, w, h);
+      tex = { d: g.getImageData(0, 0, w, h).data, w, h }; texTried = true; dirty = true;
+    } catch (e) { loadTexture(i + 1); }
+  };
+  img.onerror = () => loadTexture(i + 1);
+  img.src = TEX_URLS[i];
+}
+loadTexture();
+
+const buf = document.createElement("canvas"), bctx = buf.getContext("2d");
+let bufImg = null, dirty = true, lastKey = "", stillSince = 0;
+const D2R = Math.PI / 180;
+// light from the upper-left front, in the screen frame (depth, x, y)
+const L = (() => { const v = [0.78, -0.42, 0.46], n = Math.hypot(...v); return v.map(x => x / n); })();
+function renderEarth(rr, q) {
+  const bw = Math.max(2, Math.round(W * dpr * q)), bh = Math.max(2, Math.round(H * dpr * q));
+  if (buf.width !== bw || buf.height !== bh || !bufImg) { buf.width = bw; buf.height = bh; bufImg = bctx.createImageData(bw, bh); }
+  const out = bufImg.data; out.fill(0);
+  const rad = rr * dpr * q, cx = bw / 2, cy = bh / 2;
+  const dl = rot[0] * D2R, dp = rot[1] * D2R, cp = Math.cos(dp), sp = Math.sin(dp);
+  const T = tex.d, tw = tex.w, th = tex.h, TWO_PI = Math.PI * 2;
+  const y0 = Math.max(0, Math.floor(cy - rad)), y1 = Math.min(bh, Math.ceil(cy + rad));
+  for (let y = y0; y < y1; y++) {
+    const v = (cy - y - 0.5) / rad, vv = v * v;
+    if (vv >= 1) continue;
+    const half = Math.sqrt(1 - vv) * rad;
+    const x0 = Math.max(0, Math.floor(cx - half)), x1 = Math.min(bw, Math.ceil(cx + half));
+    for (let x = x0; x < x1; x++) {
+      const u = (x + 0.5 - cx) / rad, d = u * u + vv;
+      if (d >= 1) continue;
+      const z0 = Math.sqrt(1 - d);
+      const X = z0 * cp + v * sp, Z = v * cp - z0 * sp;
+      let lon = Math.atan2(u, X) - dl;
+      const lat = Math.asin(Z < -1 ? -1 : Z > 1 ? 1 : Z);
+      lon = ((lon / TWO_PI + 0.5) % 1 + 1) % 1;
+      const tx = (lon * tw) | 0, ty = Math.min(th - 1, ((0.5 - lat / Math.PI) * th) | 0);
+      const ti = (ty * tw + tx) * 4;
+      let shade = 0.32 + 0.78 * Math.max(0, z0 * L[0] + u * L[1] + v * L[2]);
+      const limb = 1 - Math.pow(1 - z0, 3) * 0.55;      // darker toward the edge
+      shade *= limb;
+      const o = (y * bw + x) * 4;
+      out[o] = Math.min(255, T[ti] * shade + 6 * (1 - z0));
+      out[o + 1] = Math.min(255, T[ti + 1] * shade + 14 * (1 - z0));
+      out[o + 2] = Math.min(255, T[ti + 2] * shade + 34 * (1 - z0));
+      out[o + 3] = 255;
+    }
+  }
+  bctx.putImageData(bufImg, 0, 0);
+}
+
+// stars behind the globe
+const STARS = Array.from({ length: 160 }, () => [Math.random(), Math.random(), Math.random() * 1.2 + 0.2, Math.random() * 0.6 + 0.2]);
+
+function drawFallbackEarth(rr) {
+  // plain Earth colours if the satellite image cannot load
+  const ocean = ctx.createRadialGradient(W / 2 - rr * .35, H / 2 - rr * .35, rr * .1, W / 2, H / 2, rr);
+  ocean.addColorStop(0, "#2f7fd0"); ocean.addColorStop(1, "#0b2f63");
+  ctx.beginPath(); path({ type: "Sphere" }); ctx.fillStyle = ocean; ctx.fill();
+  if (land) {
+    ctx.beginPath(); path(land); ctx.fillStyle = "#4f8a3c"; ctx.fill(); ctx.strokeStyle = "rgba(30,60,25,.6)"; ctx.lineWidth = .6; ctx.stroke();
+    ctx.save(); ctx.beginPath(); path(land); ctx.clip();
+    ctx.beginPath(); path(d3.geoCircle().center([0, 90]).radius(22)()); path(d3.geoCircle().center([0, -90]).radius(26)()); ctx.fillStyle = "#eef3f7"; ctx.fill();
+    ctx.restore();
+  }
+}
+
 function draw(now) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
   proj.translate([W / 2, H / 2]).scale(R * scaleK).rotate(rot);
   const rr = R * scaleK;
-  const g = ctx.createRadialGradient(W / 2, H / 2, rr * .92, W / 2, H / 2, rr * 1.12);
-  g.addColorStop(0, "rgba(34,211,238,.16)"); g.addColorStop(1, "rgba(34,211,238,0)");
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(W / 2, H / 2, rr * 1.12, 0, 7); ctx.fill();
-  ctx.beginPath(); path({ type: "Sphere" }); ctx.fillStyle = "#0a1322"; ctx.fill(); ctx.strokeStyle = "#16243b"; ctx.lineWidth = 1; ctx.stroke();
-  ctx.beginPath(); path(grat); ctx.strokeStyle = "rgba(120,150,200,.10)"; ctx.lineWidth = .6; ctx.stroke();
-  if (land) { ctx.beginPath(); path(land); ctx.fillStyle = "#1b293e"; ctx.fill(); ctx.strokeStyle = "#2c3f5c"; ctx.lineWidth = .6; ctx.stroke(); }
+  // stars
+  ctx.fillStyle = "#fff";
+  for (const [sx, sy, sz, sa] of STARS) { ctx.globalAlpha = sa; ctx.fillRect(sx * W, sy * H, sz, sz); }
+  ctx.globalAlpha = 1;
+  // atmosphere glow
+  const g = ctx.createRadialGradient(W / 2, H / 2, rr * .96, W / 2, H / 2, rr * 1.16);
+  g.addColorStop(0, "rgba(120,180,255,.45)"); g.addColorStop(.35, "rgba(80,150,255,.16)"); g.addColorStop(1, "rgba(60,120,255,0)");
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(W / 2, H / 2, rr * 1.16, 0, 7); ctx.fill();
+  // earth
+  if (tex) {
+    const key = rot.map(x => x.toFixed(3)).join() + "|" + rr.toFixed(1) + "|" + W + "x" + H;
+    const moving = key !== lastKey;
+    if (moving) { stillSince = now; lastKey = key; renderEarth(rr, 0.5); dirty = true; }
+    else if (dirty && now - stillSince > 250) { renderEarth(rr, 1); dirty = false; }
+    ctx.imageSmoothingEnabled = true; ctx.drawImage(buf, 0, 0, W, H);
+  } else {
+    drawFallbackEarth(rr);
+  }
+  // thin rim
+  ctx.beginPath(); ctx.arc(W / 2, H / 2, rr, 0, 7); ctx.strokeStyle = "rgba(160,200,255,.35)"; ctx.lineWidth = 1; ctx.stroke();
+  // stations
   const center = proj.invert([W / 2, H / 2]);
   const pulse = (Math.sin((now - t0) / 420) + 1) / 2;
   for (const s of STATIONS) {
     if (d3.geoDistance([s.lon, s.lat], center) > Math.PI / 2 - .02) continue;
     const [x, y] = proj([s.lon, s.lat]); const sel = selected === s;
-    ctx.beginPath(); ctx.arc(x, y, sel ? 11 + pulse * 7 : 6 + pulse * 3, 0, 7); ctx.fillStyle = sel ? "rgba(255,201,77,.22)" : "rgba(255,201,77,.14)"; ctx.fill();
-    ctx.beginPath(); ctx.arc(x, y, sel ? 5.5 : 4, 0, 7); ctx.fillStyle = "#ffc94d"; ctx.fill();
-    if (sel || scaleK > 1.4) { ctx.font = "600 12px Vazirmatn, Tahoma, sans-serif"; ctx.fillStyle = "#e6ebf4"; ctx.textAlign = "center"; ctx.fillText(s.fa, x, y - 14); }
+    ctx.beginPath(); ctx.arc(x, y, sel ? 12 + pulse * 8 : 7 + pulse * 3, 0, 7); ctx.fillStyle = sel ? "rgba(255,201,77,.30)" : "rgba(255,201,77,.22)"; ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, sel ? 6 : 4.5, 0, 7); ctx.fillStyle = "#ffc94d"; ctx.fill();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(20,12,0,.7)"; ctx.stroke();
+    if (sel || scaleK > 1.4) {
+      ctx.font = "700 12.5px Vazirmatn, Tahoma, sans-serif"; ctx.textAlign = "center";
+      ctx.lineWidth = 3.5; ctx.strokeStyle = "rgba(5,9,19,.85)"; ctx.strokeText(s.fa, x, y - 15);
+      ctx.fillStyle = "#fff"; ctx.fillText(s.fa, x, y - 15);
+    }
   }
 }
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -171,29 +271,63 @@ function staticBurst() {
   } catch (e) {}
 }
 
-/* ---------------- speech ---------------- */
-const synth = window.speechSynthesis || null; let voices = [], playing = false;
+/* ---------------- speech: neural voice from the server, phone voice as fallback ---------------- */
+const synth = window.speechSynthesis || null; let voices = [], playing = false, playToken = 0;
+const audio = new Audio(); audio.preload = "auto";
 function loadVoices() { if (synth) voices = synth.getVoices() || []; }
 if (synth) { loadVoices(); synth.onvoiceschanged = loadVoices; }
 function pickVoice() { const fa = voices.find(v => /^fa/i.test(v.lang)); if (fa) return { v: fa, lang: "fa" }; const en = voices.find(v => /^en/i.test(v.lang)); return { v: en || null, lang: "en" }; }
 function setPlaying(on) { playing = on; $("ic-play").hidden = on; $("ic-pause").hidden = !on; $("eq").classList.toggle("on", on); $("play").setAttribute("aria-label", on ? "توقف" : "پخش"); }
 function clearLive() { document.querySelectorAll(".item.live").forEach(x => x.classList.remove("live")); }
-function stopSpeech() { if (synth) synth.cancel(); setPlaying(false); clearLive(); }
-function speakStation(s) {
-  if (!synth) { $("voice").textContent = "این مرورگر خواندن متن را پشتیبانی نمی‌کند."; return; }
+function markLive(i) { document.querySelectorAll(".item").forEach((x, j) => x.classList.toggle("live", j === i)); }
+function stopSpeech() { playToken++; try { audio.pause(); audio.removeAttribute("src"); } catch (e) {} if (synth) synth.cancel(); setPlaying(false); clearLive(); }
+const ttsUrl = (s, i) => `${window.API_BASE}/api/tts?sid=${encodeURIComponent(s.id)}&i=${i}&v=${encodeURIComponent(DATA.updated || "")}`;
+
+function playUrl(url, token) {
+  return new Promise((resolve, reject) => {
+    if (token !== playToken) return resolve(false);
+    audio.onended = () => resolve(true);
+    audio.onerror = () => reject(new Error("audio"));
+    audio.src = url;
+    const p = audio.play(); if (p && p.catch) p.catch(reject);
+  });
+}
+async function speakNeural(s) {
+  const token = ++playToken;
+  setPlaying(true); $("voice").textContent = "در حال آماده‌سازی صدای گوینده…";
+  const order = [-1, ...s.news.map((_, i) => i)];
+  for (let k = 0; k < order.length; k++) {
+    if (token !== playToken) return true;
+    const i = order[k];
+    if (k + 1 < order.length) { const pre = new Audio(); pre.preload = "auto"; pre.src = ttsUrl(s, order[k + 1]); }  // warm the next item
+    markLive(i);
+    await playUrl(ttsUrl(s, i), token);
+    if (k === 0) $("voice").textContent = "گوینده: دلارا · صدای عصبی فارسی";
+  }
+  if (token === playToken) { setPlaying(false); clearLive(); }
+  return true;
+}
+function speakDevice(s) {
+  if (!synth) { $("voice").textContent = "این مرورگر پخش صدا را پشتیبانی نمی‌کند."; setPlaying(false); return; }
   synth.cancel(); loadVoices();
   const pv = pickVoice();
-  $("voice").textContent = pv.lang === "fa" ? "پخش با صدای فارسی دستگاه" : (voices.length ? "صدای فارسی روی این دستگاه نیست؛ نسخهٔ انگلیسی پخش می‌شود" : "در حال پخش…");
+  $("voice").textContent = pv.lang === "fa" ? "صدای دستگاه (صدای گوینده در دسترس نبود)" : "صدای فارسی روی این دستگاه نیست؛ نسخهٔ انگلیسی پخش می‌شود";
   const parts = [{ txt: pv.lang === "fa" ? `این‌جا رادیو کریپتو، ${s.fa}.` : `This is Crypto Radio, ${s.en}.`, i: -1 }];
   s.news.forEach((n, i) => parts.push({ txt: pv.lang === "fa" && n.lang !== "en" ? n.t + ". " + n.b : n.en, i }));
   setPlaying(true);
   parts.forEach((p, k) => {
-    const u = new SpeechSynthesisUtterance(p.txt); u.lang = pv.lang === "fa" ? "fa-IR" : "en-US"; if (pv.v) u.voice = pv.v;
-    u.onstart = () => document.querySelectorAll(".item").forEach((x, j) => x.classList.toggle("live", j === p.i));
+    const u = new SpeechSynthesisUtterance(p.txt); u.lang = pv.lang === "fa" ? "fa-IR" : "en-US"; if (pv.v) u.voice = pv.v; u.rate = 0.92; u.pitch = 0.95;
+    u.onstart = () => markLive(p.i);
     if (k === parts.length - 1) u.onend = () => { setPlaying(false); clearLive(); };
     u.onerror = () => { if (k === parts.length - 1) setPlaying(false); };
     synth.speak(u);
   });
+}
+async function speakStation(s) {
+  if (window.SITE_MODE === "server") {
+    try { await speakNeural(s); return; } catch (e) { /* fall back to the device voice */ }
+  }
+  stopSpeech(); speakDevice(s);
 }
 $("play").onclick = () => { if (!selected) return; if (playing) stopSpeech(); else speakStation(selected); };
 
@@ -256,14 +390,15 @@ $("reanalyze").onclick = async () => {
   const m = live ? "live now: " + live : (DATA.market || []).map(x => `${x.c} ${x.p}`).join(", ") + " (" + DATA.market_date + ")";
   const prompt = `You are a crypto market analyst for a Persian-language Telegram channel.
 Below are recent news items from one region (${s.en}). Decide which coins or market segments each item could move, and in which direction.
-Reply with ONLY a JSON array (max 4 objects) like:
-[{"c":["BTC","ETH"],"dir":"up"|"down"|"mixed","n":"one sentence in Persian (Farsi), max 30 words, on the likely market effect","w":"short Persian reason or timing note, max 15 words, may be empty"}]
+Reply with ONLY a JSON object like this (max 4 notes):
+{"notes":[{"c":["BTC","ETH"],"dir":"up"|"down"|"mixed","n":"one sentence in Persian (Farsi), max 30 words, on the likely market effect","w":"short Persian reason or timing note, max 15 words, may be empty"}]}
 Rules: no buy/sell advice, no price targets, no entry points. If an item has no real market effect, say so with dir "mixed". Use coin tickers in Latin letters.
 Market context: ${m}.
 NEWS:
 ${JSON.stringify(s.news.map(n => ({ date: n.d, title: n.en })), null, 1)}`;
   try {
-    const arr = await AI.ask(prompt, { json: true, signal: ctl.signal });
+    const res = await AI.ask(prompt, { json: true, signal: ctl.signal });
+    const arr = Array.isArray(res) ? res : (res && res.notes);
     if (selected !== s) return;
     if (Array.isArray(arr) && arr.length) renderNotes(arr.slice(0, 4).map(x => ({ c: Array.isArray(x.c) ? x.c.slice(0, 4) : [], dir: x.dir, n: String(x.n || ""), w: String(x.w || "") })), "تحلیل تازهٔ هوش مصنوعی");
     else $("ai-s").textContent = "هوش مصنوعی نکته‌ای برنگرداند.";

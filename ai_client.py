@@ -53,20 +53,28 @@ def ask(prompt: str, json_mode: bool = False, max_tokens: int = 1500, timeout: i
         system += " Reply with valid JSON only, no prose and no code fences."
 
     if p == "Groq":
-        body = {
-            "model": os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile"),
-            "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
-            "temperature": 0.4,
-            "max_tokens": max_tokens,
-        }
-        r = requests.post("https://api.groq.com/openai/v1/chat/completions",
-                          headers={"Authorization": f"Bearer {os.environ['GROQ_API_KEY']}"},
-                          json=body, timeout=timeout)
-        if r.status_code == 429:
-            raise AIError("Rate limited by Groq.", "rate_limited")
-        if not r.ok:
-            raise AIError(f"Groq error {r.status_code}: {r.text[:300]}")
-        return r.json()["choices"][0]["message"]["content"]
+        models = [os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile"),
+                  os.environ.get("GROQ_FALLBACK_MODEL", "llama-3.1-8b-instant")]
+        last = None
+        for model in models:   # if the main model's quota is full, the lighter model answers
+            body = {
+                "model": model,
+                "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+                "temperature": 0.3,
+                "max_tokens": max_tokens,
+            }
+            if json_mode:
+                body["response_format"] = {"type": "json_object"}
+            r = requests.post("https://api.groq.com/openai/v1/chat/completions",
+                              headers={"Authorization": f"Bearer {os.environ['GROQ_API_KEY']}"},
+                              json=body, timeout=timeout)
+            if r.ok:
+                return r.json()["choices"][0]["message"]["content"]
+            last = AIError("Rate limited by Groq." if r.status_code == 429 else f"Groq error {r.status_code}: {r.text[:300]}",
+                           "rate_limited" if r.status_code == 429 else "upstream_error")
+            if r.status_code not in (429, 413, 400, 404, 503):
+                break
+        raise last
 
     body = {
         "model": os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5"),

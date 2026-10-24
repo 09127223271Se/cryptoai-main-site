@@ -15,12 +15,13 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from functools import wraps
 
-from flask import Flask, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, Response, jsonify, redirect, render_template, request, session, url_for
 
 import ai_client
 import news_live
 import telegram_bot
 import trader_engine
+import tts
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 BUSINESS_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "crypto-business"))
@@ -143,6 +144,7 @@ def health():
         "business_module": os.path.isdir(BUSINESS_PATH),
         "ai_provider": ai_client.provider(),
         "telegram": telegram_bot.ready(),
+        "tts": tts.available(),
         "market_data_errors": dict(list(trader_engine.last_errors.items())[:5]),
         "news": news_live.status(),
     })
@@ -186,6 +188,30 @@ def ai_ask():
 def api_stations():
     """Live news per station (refreshed in the background every 10 min), snapshot until the first refresh lands."""
     return jsonify(news_live.get_stations())
+
+
+@app.route("/api/tts")
+def api_tts():
+    """Neural voice for one radio item: ?sid=<station>&i=<item index or -1 for the intro>.
+    Only text that is already on a station can be spoken, so this cannot be used as a free TTS service."""
+    sid, i = request.args.get("sid", ""), int(request.args.get("i", -1))
+    data = news_live.get_stations()
+    st = next((s for s in data.get("stations", []) if s.get("id") == sid), None)
+    if not st:
+        return jsonify({"ok": False, "error": "unknown station"}), 404
+    if i < 0:
+        text, lang = f"این‌جا رادیو کریپتو، {st['fa']}. خبرهای تازهٔ کریپتو را می‌شنوید.", "fa"
+    elif i < len(st.get("news", [])):
+        n = st["news"][i]
+        lang = "en" if n.get("lang") == "en" else "fa"
+        text = n["en"] if lang == "en" else f"{n['t']}. {n['b']}"
+    else:
+        return jsonify({"ok": False, "error": "unknown item"}), 404
+    try:
+        audio = tts.speak(text, lang)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)[:200]}), 503
+    return Response(audio, mimetype="audio/mpeg", headers={"Cache-Control": "public, max-age=3600"})
 
 
 # ---------- Trader ----------
