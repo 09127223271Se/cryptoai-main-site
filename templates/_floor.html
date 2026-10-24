@@ -1,0 +1,48 @@
+{% set EN = lang == 'en' %}
+<section class="floor" id="floor" dir="ltr" aria-label="{{ 'AI analysis floor' if EN else 'اتاق تحلیل هوش مصنوعی' }}">
+  <div class="fl-top">
+    <div class="fl-brand"><i aria-hidden="true"></i>CRYPTOAI <span>×</span> FLOOR</div>
+    <div class="fl-stats">
+      <span>COINS<b id="fs-coins">24</b></span><span>PATTERNS<b id="fs-pat">–</b></span>
+      <span>NEWS 24H<b id="fs-news">–</b></span><span>POSTS<b id="fs-posts">–</b></span>
+      <span class="fl-live" id="fs-clock">LIVE</span>
+    </div>
+  </div>
+  <div class="fl-grid">
+    <aside class="fl-left">
+      <div class="fl-box">
+        <div class="fl-h"><span dir="auto">{{ 'Direction calls' if EN else 'دقت پیش‌بینی جهت' }}</span><span id="fa-src"></span></div>
+        <div class="fl-big" id="fa-rate">–</div>
+        <div dir="auto" class="fl-sub" id="fa-sub">{{ 'Collecting the record…' if EN else 'در حال جمع‌آوری کارنامه…' }}</div>
+      </div>
+      <div class="fl-pair">
+        <div class="fl-box"><div class="fl-h"><span dir="auto">{{ 'In 50% range' if EN else 'داخل بازهٔ ۵۰٪' }}</span></div><div class="fl-big" id="fa-50">–</div><div dir="auto" class="fl-sub">{{ 'target ≈ 50%' if EN else 'هدف ≈ ۵۰٪' }}</div></div>
+        <div class="fl-box"><div class="fl-h"><span dir="auto">{{ 'In 90% range' if EN else 'داخل بازهٔ ۹۰٪' }}</span></div><div class="fl-big" id="fa-90">–</div><div dir="auto" class="fl-sub">{{ 'target ≈ 90%' if EN else 'هدف ≈ ۹۰٪' }}</div></div>
+      </div>
+      <div class="fl-box">
+        <div class="fl-h"><span dir="auto">{{ 'Record curve' if EN else 'منحنی کارنامه' }}</span><span>+1 / −1</span></div>
+        <canvas class="fl-curve" id="fa-curve" aria-label="{{ 'Cumulative right minus wrong calls' if EN else 'جمع پیش‌بینی‌های درست منهای غلط' }}"></canvas>
+      </div>
+      <div class="fl-box"><div class="fl-h"><span dir="auto">{{ 'By coin' if EN else 'به تفکیک کوین' }}</span></div><div class="fl-bars" id="fa-by"></div></div>
+    </aside>
+
+    <div class="fl-room">
+      <div class="fl-roomhead">
+        <div class="fl-h" style="margin:0"><span>◆ {{ 'The analysis floor' if EN else 'The analysis floor · اتاق تحلیل' }}</span></div>
+        <div class="fl-coins" id="fl-coins" role="group" aria-label="{{ 'Coin' if EN else 'کوین' }}"></div>
+      </div>
+      <div class="fl-screen">
+        <div class="fl-shead"><span id="fl-sym">BTC/USDT</span><b id="fl-px">–</b><span id="fl-ch"></span><span class="fl-verdict" id="fl-vd">…</span></div>
+        <canvas class="fl-chart" id="fl-chart" aria-label="{{ 'Last 72 hours with support, resistance and the 24h probable range' if EN else '۷۲ ساعت اخیر با حمایت، مقاومت و محدودهٔ محتمل ۲۴ ساعت' }}"></canvas>
+      </div>
+      <div class="fl-desks" id="fl-desks"></div>
+    </div>
+
+    <aside class="fl-box fl-log">
+      <div class="fl-h"><span dir="auto">{{ 'Activity log' if EN else 'Activity log · گزارش زنده' }}</span><span id="fl-count"></span></div>
+      <div class="fl-rows" id="fl-rows" aria-live="polite"></div>
+    </aside>
+  </div>
+  <div class="fl-cards" id="fl-cards"></div>
+  <p class="fl-note" dir="{{ 'ltr' if EN else 'rtl' }}">{% if EN %}The record is honest: the backtest replays the chart engine's call for BTC, ETH and SOL on each of the last 30 days and checks the price 24 hours later; from today every live call (chart + news) is saved and judged after 24 hours. Probabilities, not promises — never a buy/sell signal or entry point.{% else %}کارنامه صادقانه است: بک‌تست، تشخیص موتور چارت برای BTC، ETH و SOL را در هر یک از ۳۰ روز گذشته دوباره اجرا می‌کند و با قیمت ۲۴ ساعت بعد مقایسه می‌کند؛ از امروز هم هر پیش‌بینی زنده (چارت + خبر) ثبت و ۲۴ ساعت بعد داوری می‌شود. این‌ها احتمال است نه قول، و هرگز سیگنال خرید/فروش یا نقطهٔ ورود نیست.{% endif %}</p>
+</section>

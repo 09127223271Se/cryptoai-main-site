@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% block title %}CryptoAI · Trader{% endblock %}
-{% block head %}<link rel="stylesheet" href="{{ asset('css/trader.css') }}">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/trader.css') }}"><link rel="stylesheet" href="{{ asset('css/floor.css') }}">{% endblock %}
 {% block content %}
 <div class="wrap">
-  <div class="page-head">
+  {% include "_floor.html" %}
+  <div class="page-head tools-head">
     <div>
       <h1>Crypto <span>Trader</span></h1>
       <p>24 coins scanned live: chart patterns, key levels, and 10,000 possible price paths for the next 24 hours.</p>
@@ -83,4 +84,4 @@
   </section>
 </div>
 {% endblock %}
-{% block scripts %}<script src="{{ asset('js/trader.js') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ asset('js/floor.js') }}"></script><script src="{{ asset('js/trader.js') }}"></script>{% endblock %}

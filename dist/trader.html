@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&family=Lalezar&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
   
   <link rel="stylesheet" href="static/css/main.css">
-  <link rel="stylesheet" href="static/css/trader.css">
+  <link rel="stylesheet" href="static/css/trader.css"><link rel="stylesheet" href="static/css/floor.css">
   <script>
     /* "server": Flask backend answers /api/*.  "static": hosted preview, AI falls back to Claude. */
     window.SITE_MODE = "static";
@@ -46,7 +46,55 @@
   <main class="main">
     
 <div class="wrap">
-  <div class="page-head">
+  
+<section class="floor" id="floor" dir="ltr" aria-label="اتاق تحلیل هوش مصنوعی">
+  <div class="fl-top">
+    <div class="fl-brand"><i aria-hidden="true"></i>CRYPTOAI <span>×</span> FLOOR</div>
+    <div class="fl-stats">
+      <span>COINS<b id="fs-coins">24</b></span><span>PATTERNS<b id="fs-pat">–</b></span>
+      <span>NEWS 24H<b id="fs-news">–</b></span><span>POSTS<b id="fs-posts">–</b></span>
+      <span class="fl-live" id="fs-clock">LIVE</span>
+    </div>
+  </div>
+  <div class="fl-grid">
+    <aside class="fl-left">
+      <div class="fl-box">
+        <div class="fl-h"><span dir="auto">دقت پیش‌بینی جهت</span><span id="fa-src"></span></div>
+        <div class="fl-big" id="fa-rate">–</div>
+        <div dir="auto" class="fl-sub" id="fa-sub">در حال جمع‌آوری کارنامه…</div>
+      </div>
+      <div class="fl-pair">
+        <div class="fl-box"><div class="fl-h"><span dir="auto">داخل بازهٔ ۵۰٪</span></div><div class="fl-big" id="fa-50">–</div><div dir="auto" class="fl-sub">هدف ≈ ۵۰٪</div></div>
+        <div class="fl-box"><div class="fl-h"><span dir="auto">داخل بازهٔ ۹۰٪</span></div><div class="fl-big" id="fa-90">–</div><div dir="auto" class="fl-sub">هدف ≈ ۹۰٪</div></div>
+      </div>
+      <div class="fl-box">
+        <div class="fl-h"><span dir="auto">منحنی کارنامه</span><span>+1 / −1</span></div>
+        <canvas class="fl-curve" id="fa-curve" aria-label="جمع پیش‌بینی‌های درست منهای غلط"></canvas>
+      </div>
+      <div class="fl-box"><div class="fl-h"><span dir="auto">به تفکیک کوین</span></div><div class="fl-bars" id="fa-by"></div></div>
+    </aside>
+
+    <div class="fl-room">
+      <div class="fl-roomhead">
+        <div class="fl-h" style="margin:0"><span>◆ The analysis floor · اتاق تحلیل</span></div>
+        <div class="fl-coins" id="fl-coins" role="group" aria-label="کوین"></div>
+      </div>
+      <div class="fl-screen">
+        <div class="fl-shead"><span id="fl-sym">BTC/USDT</span><b id="fl-px">–</b><span id="fl-ch"></span><span class="fl-verdict" id="fl-vd">…</span></div>
+        <canvas class="fl-chart" id="fl-chart" aria-label="۷۲ ساعت اخیر با حمایت، مقاومت و محدودهٔ محتمل ۲۴ ساعت"></canvas>
+      </div>
+      <div class="fl-desks" id="fl-desks"></div>
+    </div>
+
+    <aside class="fl-box fl-log">
+      <div class="fl-h"><span dir="auto">Activity log · گزارش زنده</span><span id="fl-count"></span></div>
+      <div class="fl-rows" id="fl-rows" aria-live="polite"></div>
+    </aside>
+  </div>
+  <div class="fl-cards" id="fl-cards"></div>
+  <p class="fl-note" dir="rtl">کارنامه صادقانه است: بک‌تست، تشخیص موتور چارت برای BTC، ETH و SOL را در هر یک از ۳۰ روز گذشته دوباره اجرا می‌کند و با قیمت ۲۴ ساعت بعد مقایسه می‌کند؛ از امروز هم هر پیش‌بینی زنده (چارت + خبر) ثبت و ۲۴ ساعت بعد داوری می‌شود. این‌ها احتمال است نه قول، و هرگز سیگنال خرید/فروش یا نقطهٔ ورود نیست.</p>
+</section>
+  <div class="page-head tools-head">
     <div>
       <h1>تریدر <span>کریپتو</span></h1>
       <p>۲۴ ارز دیجیتال، لحظه‌به‌لحظه اسکن می‌شوند: الگوهای چارت، سطوح کلیدی، و ۱۰٬۰۰۰ مسیر احتمالی قیمت برای ۲۴ ساعت آینده.</p>
@@ -168,7 +216,7 @@
     });
   </script>
   <script src="static/js/market-bar.js"></script>
-  <script src="static/js/trader.js"></script>
+  <script src="static/js/floor.js"></script><script src="static/js/trader.js"></script>
 </div>
 </body>
 </html>

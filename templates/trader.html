@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% block title %}CryptoAI · تریدر{% endblock %}
-{% block head %}<link rel="stylesheet" href="{{ asset('css/trader.css') }}">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/trader.css') }}"><link rel="stylesheet" href="{{ asset('css/floor.css') }}">{% endblock %}
 {% block content %}
 <div class="wrap">
-  <div class="page-head">
+  {% include "_floor.html" %}
+  <div class="page-head tools-head">
     <div>
       <h1>تریدر <span>کریپتو</span></h1>
       <p>۲۴ ارز دیجیتال، لحظه‌به‌لحظه اسکن می‌شوند: الگوهای چارت، سطوح کلیدی، و ۱۰٬۰۰۰ مسیر احتمالی قیمت برای ۲۴ ساعت آینده.</p>
@@ -114,4 +115,4 @@
   </section>{% endif %}
 </div>
 {% endblock %}
-{% block scripts %}<script src="{{ asset('js/trader.js') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ asset('js/floor.js') }}"></script><script src="{{ asset('js/trader.js') }}"></script>{% endblock %}

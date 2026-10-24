@@ -396,6 +396,11 @@ def start_loop():
             except Exception as e:
                 _state["last_error"] = "pro: " + str(e)[:180]
             try:
+                import floor
+                floor.tick()
+            except Exception as e:
+                _state["last_error"] = "floor: " + str(e)[:180]
+            try:
                 import social
                 social.tick()
             except Exception as e:

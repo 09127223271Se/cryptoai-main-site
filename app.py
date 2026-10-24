@@ -176,6 +176,18 @@ def social_media(key):
     return Response(data, mimetype="image/jpeg", headers={"Cache-Control": "no-store"})
 
 
+# ---------- Analysis floor (trader page) ----------
+_floor_cache = {"at": 0.0, "data": None}
+
+
+@app.route("/api/floor")
+def api_floor():
+    import floor
+    if _floor_cache["data"] is None or time.time() - _floor_cache["at"] > 30:
+        _floor_cache.update(data=floor.state(), at=time.time())
+    return jsonify(_floor_cache["data"])
+
+
 # ---------- Search: coins and news ----------
 @app.route("/search")
 def search_page():
