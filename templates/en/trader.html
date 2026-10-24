@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}CryptoAI · Trader{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/trader.css') }}">{% endblock %}
+{% block content %}
+<div class="wrap">
+  <div class="page-head">
+    <div>
+      <h1>Crypto <span>Trader</span></h1>
+      <p>24 coins scanned live: chart patterns, key levels, and 10,000 possible price paths for the next 24 hours.</p>
+    </div>
+    <div class="row">
+      <span class="pill warn" id="data-pill">Loading data…</span>
+      <span class="pill">Timeframe <b class="num">1h</b></span>
+    </div>
+  </div>
+
+  <div class="desk">
+    <section class="panel" aria-labelledby="h-scan">
+      <div class="ph">
+        <h2 id="h-scan">Chart scanner</h2>
+        <div class="seg" role="group" aria-label="Filter">
+          <button id="f-all" aria-pressed="true" data-f="all">All</button>
+          <button id="f-hit" aria-pressed="false" data-f="hit">With pattern</button>
+          <button id="f-up" aria-pressed="false" data-f="up">Bullish</button>
+          <button id="f-down" aria-pressed="false" data-f="down">Bearish</button>
+        </div>
+      </div>
+      <div class="scanbar"><span class="big" id="hits">0</span><span class="of" id="hits-of"></span></div>
+      <div class="grid" id="grid"></div>
+      <div class="upload">
+        <label class="btn" for="csv">Upload CSV<input type="file" id="csv" accept=".csv,text/csv"></label>
+        <span>Columns: time, open, high, low, close, volume (TradingView or Binance export)</span>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-setup">
+      <div class="ph"><h2 id="h-setup">Setup sheet</h2><span class="sub">Last 96 candles + simulation cone</span></div>
+      <div class="sheet-head">
+        <div class="name" id="s-name">–</div>
+        <span class="bias flat" id="s-bias">–</span>
+      </div>
+      <div class="cards">
+        <div class="card"><div class="k">Price now</div><div class="v num" id="c-price">–</div><div class="s" id="c-chg">–</div></div>
+        <div class="card"><div class="k">24h range high</div><div class="v num" id="c-res">–</div><div class="s" id="c-res-d">–</div></div>
+        <div class="card"><div class="k">24h range low</div><div class="v num" id="c-sup">–</div><div class="s" id="c-sup-d">–</div></div>
+      </div>
+      <div class="chartbox"><canvas id="cv-main" aria-label="Candle chart with key levels and the simulation cone"></canvas></div>
+      <div class="legend">
+        <span><i style="background:var(--down)"></i>Range high</span>
+        <span><i style="background:var(--up)"></i>Range low</span>
+        <span><i style="background:var(--muted)"></i>EMA 50</span>
+        <span><i style="background:var(--fan);opacity:.6"></i>Simulated 50% and 90% ranges</span>
+      </div>
+      <div class="findings" id="findings"></div>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="h-sim">
+    <div class="ph">
+      <h2 id="h-sim">Monte Carlo simulation</h2>
+      <div class="row">
+        <div class="seg" role="group" aria-label="Horizon">
+          <button id="hz-24" aria-pressed="true" data-h="24">24 hours</button>
+          <button id="hz-72" aria-pressed="false" data-h="72">3 days</button>
+        </div>
+        <button class="btn" id="rerun">Run again</button>
+      </div>
+    </div>
+    <div class="sim-top">
+      <div class="counter"><span class="n" id="sim-n">0</span><span class="l" id="sim-l"></span></div>
+      <div class="row" id="sim-pcts"></div>
+    </div>
+    <div class="simgrid">
+      <div><canvas id="cv-hist" aria-label="Distribution of final prices"></canvas></div>
+      <div style="min-width:0;overflow-x:auto">
+        <table class="lv">
+          <thead><tr><th>Level</th><th>Price</th><th>Distance</th><th>Chance to touch</th></tr></thead>
+          <tbody id="lv-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <p class="note">Method: block bootstrap of this coin's hourly returns over the last 7 days, with the average return removed (no directional assumption). The simulation only shows how far price usually travels at today's volatility over this horizon; it does not predict direction.</p>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ asset('js/trader.js') }}"></script>{% endblock %}

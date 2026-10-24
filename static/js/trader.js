@@ -6,7 +6,8 @@
 /* ---------- utils ---------- */
 const $ = id => document.getElementById(id);
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const faNum = s => String(s).replace(/\d/g, d => "۰۱۲۳۴۵۶۷۸۹"[d]);
+const EN = window.LANG === "en", tx = (f, e) => EN ? e : f;
+const faNum = s => EN ? String(s) : String(s).replace(/\d/g, d => "۰۱۲۳۴۵۶۷۸۹"[d]);
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function gauss(r){let u=0,v=0;while(!u)u=r();while(!v)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
 function fmt(p){
@@ -81,9 +82,9 @@ function analyze(sym,cs){
   const tags=[];
   const add=(id,label,dir,detail)=>tags.push({id,label,dir,detail});
   const tight=width<medW*.85;
-  if(tight&&last>rh) add("bo_up","شکست سقف رنج",1,`بستهٔ آخر بالای سقف رنج ۲۴ ساعته (${fmt(rh)}) است؛ رنج ${(width*100).toFixed(1)}٪ عرض داشت، کمتر از معمول این کوین (${(medW*100).toFixed(1)}٪).`);
-  else if(tight&&last<rl) add("bo_dn","شکست کف رنج",-1,`بستهٔ آخر زیر کف رنج ۲۴ ساعته (${fmt(rl)}) است؛ رنج قبلی فشرده بود (${(width*100).toFixed(1)}٪).`);
-  else if(width<medW*.6) add("sqz","فشردگی",0,`رنج ۲۴ ساعته فقط ${(width*100).toFixed(1)}٪ است؛ حدود ${Math.round(width/medW*100)}٪ رنج معمول. فشردگی معمولاً قبل از حرکت بزرگ دیده می‌شود، جهتش معلوم نیست.`);
+  if(tight&&last>rh) add("bo_up",tx("شکست سقف رنج","Range breakout"),1,tx(`بستهٔ آخر بالای سقف رنج ۲۴ ساعته (${fmt(rh)}) است؛ رنج ${(width*100).toFixed(1)}٪ عرض داشت، کمتر از معمول این کوین (${(medW*100).toFixed(1)}٪).`,`The last close is above the 24h range high (${fmt(rh)}); the range was ${(width*100).toFixed(1)}% wide, tighter than usual for this coin (${(medW*100).toFixed(1)}%).`));
+  else if(tight&&last<rl) add("bo_dn",tx("شکست کف رنج","Range breakdown"),-1,tx(`بستهٔ آخر زیر کف رنج ۲۴ ساعته (${fmt(rl)}) است؛ رنج قبلی فشرده بود (${(width*100).toFixed(1)}٪).`,`The last close is below the 24h range low (${fmt(rl)}); the prior range was tight (${(width*100).toFixed(1)}%).`));
+  else if(width<medW*.6) add("sqz",tx("فشردگی","Volatility squeeze"),0,tx(`رنج ۲۴ ساعته فقط ${(width*100).toFixed(1)}٪ است؛ حدود ${Math.round(width/medW*100)}٪ رنج معمول. فشردگی معمولاً قبل از حرکت بزرگ دیده می‌شود، جهتش معلوم نیست.`,`The 24h range is only ${(width*100).toFixed(1)}%, about ${Math.round(width/medW*100)}% of normal. Squeezes often come before a big move; the direction is unknown.`));
   // double bottom / top on last 60
   const seg=60, base=n-seg, sw=[],sh=[];
   for(let i=base+3;i<n-3;i++){
@@ -95,26 +96,26 @@ function analyze(sym,cs){
   const dbNeck=db?Math.max(...H.slice(db.i,db.j+1)):0;
   if(db&&Math.min(L[db.i],L[db.j])<=Math.min(...L.slice(base))*1.004&&dbNeck/L[db.i]-1>.025&&(last>dbNeck||db.j>=n-20)){
     const neck=dbNeck;
-    if(last>neck)add("dbl_b","کف دوقلو (تأیید)",1,`دو کف نزدیک در ${fmt(L[db.i])} و ${fmt(L[db.j])}؛ قیمت از خط گردن ${fmt(neck)} عبور کرده.`);
-    else if(last>L[db.j])add("dbl_b2","کف دوقلو (در حال شکل‌گیری)",0,`دو کف نزدیک در ${fmt(L[db.i])} و ${fmt(L[db.j])}؛ خط گردن ${fmt(neck)} هنوز شکسته نشده.`);
+    if(last>neck)add("dbl_b",tx("کف دوقلو (تأیید)","Double bottom (confirmed)"),1,tx(`دو کف نزدیک در ${fmt(L[db.i])} و ${fmt(L[db.j])}؛ قیمت از خط گردن ${fmt(neck)} عبور کرده.`,`Two close lows at ${fmt(L[db.i])} and ${fmt(L[db.j])}; price has broken the neckline at ${fmt(neck)}.`));
+    else if(last>L[db.j])add("dbl_b2",tx("کف دوقلو (در حال شکل‌گیری)","Double bottom (forming)"),0,tx(`دو کف نزدیک در ${fmt(L[db.i])} و ${fmt(L[db.j])}؛ خط گردن ${fmt(neck)} هنوز شکسته نشده.`,`Two close lows at ${fmt(L[db.i])} and ${fmt(L[db.j])}; the neckline at ${fmt(neck)} is not broken yet.`));
   }
   const dt=pair(sh,H,(x,y)=>x>y);
   const dtNeck=dt?Math.min(...L.slice(dt.i,dt.j+1)):0;
   if(dt&&Math.max(H[dt.i],H[dt.j])>=Math.max(...H.slice(base))*.996&&1-dtNeck/H[dt.i]>.025&&(last<dtNeck||dt.j>=n-20)){
     const neck=dtNeck;
-    if(last<neck)add("dbl_t","سقف دوقلو (تأیید)",-1,`دو سقف نزدیک در ${fmt(H[dt.i])} و ${fmt(H[dt.j])}؛ قیمت زیر خط گردن ${fmt(neck)} بسته شده.`);
-    else if(last<H[dt.j])add("dbl_t2","سقف دوقلو (در حال شکل‌گیری)",0,`دو سقف نزدیک در ${fmt(H[dt.i])} و ${fmt(H[dt.j])}؛ خط گردن ${fmt(neck)} هنوز شکسته نشده.`);
+    if(last<neck)add("dbl_t",tx("سقف دوقلو (تأیید)","Double top (confirmed)"),-1,tx(`دو سقف نزدیک در ${fmt(H[dt.i])} و ${fmt(H[dt.j])}؛ قیمت زیر خط گردن ${fmt(neck)} بسته شده.`,`Two close highs at ${fmt(H[dt.i])} and ${fmt(H[dt.j])}; price closed below the neckline at ${fmt(neck)}.`));
+    else if(last<H[dt.j])add("dbl_t2",tx("سقف دوقلو (در حال شکل‌گیری)","Double top (forming)"),0,tx(`دو سقف نزدیک در ${fmt(H[dt.i])} و ${fmt(H[dt.j])}؛ خط گردن ${fmt(neck)} هنوز شکسته نشده.`,`Two close highs at ${fmt(H[dt.i])} and ${fmt(H[dt.j])}; the neckline at ${fmt(neck)} is not broken yet.`));
   }
   // EMA cross in last 6
   for(let i=n-6;i<n;i++){
-    if(e20[i-1]<=e50[i-1]&&e20[i]>e50[i]){add("x_up","کراس طلایی EMA",1,"EMA 20 در ۶ کندل اخیر از بالای EMA 50 عبور کرده.");break}
-    if(e20[i-1]>=e50[i-1]&&e20[i]<e50[i]){add("x_dn","کراس مرگ EMA",-1,"EMA 20 در ۶ کندل اخیر به زیر EMA 50 رفته.");break}
+    if(e20[i-1]<=e50[i-1]&&e20[i]>e50[i]){add("x_up",tx("کراس طلایی EMA","EMA golden cross"),1,tx("EMA 20 در ۶ کندل اخیر از بالای EMA 50 عبور کرده.","EMA 20 crossed above EMA 50 in the last 6 candles."));break}
+    if(e20[i-1]>=e50[i-1]&&e20[i]<e50[i]){add("x_dn",tx("کراس مرگ EMA","EMA death cross"),-1,tx("EMA 20 در ۶ کندل اخیر به زیر EMA 50 رفته.","EMA 20 crossed below EMA 50 in the last 6 candles."));break}
   }
   const r=R[n-1];
-  if(r>70)add("ob","اشباع خرید",0,`RSI 14 برابر ${r.toFixed(0)} است؛ حرکت کشیده شده و احتمال استراحت بیشتر است.`);
-  if(r<30)add("os","اشباع فروش",0,`RSI 14 برابر ${r.toFixed(0)} است؛ فروش شدید بوده.`);
+  if(r>70)add("ob",tx("اشباع خرید","Overbought"),0,tx(`RSI 14 برابر ${r.toFixed(0)} است؛ حرکت کشیده شده و احتمال استراحت بیشتر است.`,`RSI 14 is ${r.toFixed(0)}; the move is stretched and a pause is more likely.`));
+  if(r<30)add("os",tx("اشباع فروش","Oversold"),0,tx(`RSI 14 برابر ${r.toFixed(0)} است؛ فروش شدید بوده.`,`RSI 14 is ${r.toFixed(0)}; selling has been heavy.`));
   const avgV=V.slice(n-53,n-3).reduce((a,b)=>a+b,0)/50, mv=Math.max(...V.slice(n-3));
-  if(mv>avgV*2.3)add("vol","حجم غیرعادی",0,`حجم یکی از ۳ کندل اخیر ${(mv/avgV).toFixed(1)} برابر میانگین ۵۰ کندل است.`);
+  if(mv>avgV*2.3)add("vol",tx("حجم غیرعادی","Volume spike"),0,tx(`حجم یکی از ۳ کندل اخیر ${(mv/avgV).toFixed(1)} برابر میانگین ۵۰ کندل است.`,`Volume in one of the last 3 candles is ${(mv/avgV).toFixed(1)}× the 50-candle average.`));
   // bias
   let score=tags.reduce((s,t)=>s+t.dir,0);
   const trend=(last>e50[n-1]&&e20[n-1]>e50[n-1]&&e50[n-1]>e50[n-12])?1:(last<e50[n-1]&&e20[n-1]<e50[n-1]&&e50[n-1]<e50[n-12])?-1:0;
@@ -187,8 +188,8 @@ async function loadFromBrowser(){
 }
 function setDataPill(){
   const p=$("data-pill");
-  if(state.source==="live"){p.className="pill live";p.textContent="● زنده"}
-  else{p.className="pill warn";p.textContent="اتصال به بازار برقرار نشد؛ نمایش نمونه"}
+  if(state.source==="live"){p.className="pill live";p.textContent=tx("● زنده","● Live")}
+  else{p.className="pill warn";p.textContent=tx("اتصال به بازار برقرار نشد؛ نمایش نمونه","Could not reach the market; showing sample data")}
 }
 
 /* ---------- canvas helpers ---------- */
@@ -218,23 +219,23 @@ function renderGrid(){
     requestAnimationFrame(()=>spark(b.querySelector("canvas"),a));
   });
   $("hits").textContent=faNum(hits);
-  $("hits-of").textContent=`الگو در ${faNum(state.list.length)} کوین اسکن‌شده`;
+  $("hits-of").textContent=tx(`الگو در ${faNum(state.list.length)} کوین اسکن‌شده`,`patterns across ${state.list.length} scanned coins`);
 }
 
 /* ---------- setup sheet ---------- */
-const biasTxt=b=>b>0?["صعودی","up"]:b<0?["نزولی","down"]:["خنثی","flat"];
+const biasTxt=b=>b>0?[tx("صعودی","Bullish"),"up"]:b<0?[tx("نزولی","Bearish"),"down"]:[tx("خنثی","Neutral"),"flat"];
 function renderSheet(){
   const a=state.list[state.sel];
   $("s-name").innerHTML=`${a.sym} <small>/ ${a.csv?"CSV":"USDT"}</small>`;
-  const [bt,bc]=biasTxt(a.bias);const bb=$("s-bias");bb.className="bias "+bc;bb.textContent="جهت ساختار: "+bt;
+  const [bt,bc]=biasTxt(a.bias);const bb=$("s-bias");bb.className="bias "+bc;bb.textContent=tx("جهت ساختار: ","Structure: ")+bt;
   const lp=a.livePrice||a.last,lc=a.liveChg!==undefined?a.liveChg:a.chg;
   $("c-price").textContent=fmtX(lp);
-  const ce=$("c-chg");ce.className="s num "+(lc>=0?"up":"down");ce.textContent=pct(lc)+" (24h)"+(a.livePrice?" · لحظه‌ای":"");
-  $("c-res").textContent=fmt(a.rh);$("c-res-d").textContent=pct(a.rh/a.last-1)+" تا قیمت فعلی";
-  $("c-sup").textContent=fmt(a.rl);$("c-sup-d").textContent=pct(a.rl/a.last-1)+" تا قیمت فعلی";
+  const ce=$("c-chg");ce.className="s num "+(lc>=0?"up":"down");ce.textContent=pct(lc)+" (24h)"+(a.livePrice?tx(" · لحظه‌ای"," · live"):"");
+  $("c-res").textContent=fmt(a.rh);$("c-res-d").textContent=pct(a.rh/a.last-1)+tx(" تا قیمت فعلی"," from current price");
+  $("c-sup").textContent=fmt(a.rl);$("c-sup-d").textContent=pct(a.rl/a.last-1)+tx(" تا قیمت فعلی"," from current price");
   const f=$("findings");f.textContent="";
-  const items=a.tags.length?a.tags:[{label:"الگوی مشخصی دیده نشد",dir:0,detail:"قیمت داخل رنج عادی خودش حرکت می‌کند. سطوح رنج و نتیجهٔ شبیه‌سازی همچنان معتبرند."}];
-  const tr={label:"روند (EMA 20/50)",dir:a.trend,detail:a.trend>0?"قیمت بالای EMA 50 و EMA 20 بالای EMA 50، با شیب مثبت.":a.trend<0?"قیمت زیر EMA 50 و EMA 20 زیر EMA 50، با شیب منفی.":"میانگین‌ها هم‌جهت نیستند؛ روند مشخصی نیست."};
+  const items=a.tags.length?a.tags:[{label:tx("الگوی مشخصی دیده نشد","No clear pattern"),dir:0,detail:tx("قیمت داخل رنج عادی خودش حرکت می‌کند. سطوح رنج و نتیجهٔ شبیه‌سازی همچنان معتبرند.","Price is moving inside its normal range. The range levels and the simulation still apply.")}];
+  const tr={label:tx("روند (EMA 20/50)","Trend (EMA 20/50)"),dir:a.trend,detail:a.trend>0?tx("قیمت بالای EMA 50 و EMA 20 بالای EMA 50، با شیب مثبت.","Price above EMA 50 and EMA 20 above EMA 50, sloping up."):a.trend<0?tx("قیمت زیر EMA 50 و EMA 20 زیر EMA 50، با شیب منفی.","Price below EMA 50 and EMA 20 below EMA 50, sloping down."):tx("میانگین‌ها هم‌جهت نیستند؛ روند مشخصی نیست.","The averages disagree; no clear trend.")};
   [...items,tr].forEach(t=>{const d=document.createElement("div");d.className="finding";
     d.innerHTML=`<span class="dot ${t.dir>0?"up":t.dir<0?"down":"flat"}"></span><div><b></b><p></p></div>`;
     d.querySelector("b").textContent=t.label;d.querySelector("p").textContent=t.detail;f.append(d)});
@@ -286,23 +287,23 @@ function runSim(){
     state.fan=fanFromGrid(sim);state.simDone=true;
     renderSimResults();drawMain();renderPost();
   };
-  $("sim-l").textContent=`مسیر از ۱۰٬۰۰۰ · ${state.horizon===24?"۲۴ ساعت":"۷۲ ساعت"} آینده · ${a.sym}`;
+  $("sim-l").textContent=tx(`مسیر از ۱۰٬۰۰۰ · ${state.horizon===24?"۲۴ ساعت":"۷۲ ساعت"} آینده · ${a.sym}`,`paths of 10,000 · next ${state.horizon}h · ${a.sym}`);
   tick();
 }
 function simStats(){
   const a=state.list[state.sel],s=state.sim,fin=Float64Array.from(s.fin).sort();
   const q=[.05,.25,.5,.75,.95].map(x=>quant(fin,x));
   const levels=[
-    ["سقف رنج ۲۴h",a.rh],["کف رنج ۲۴h",a.rl],
-    ["سقف ۷ روز",a.wh],["کف ۷ روز",a.wl],
-    ["+۵٪",a.last*1.05],["−۵٪",a.last*.95]
+    [tx("سقف رنج ۲۴h","24h range high"),a.rh],[tx("کف رنج ۲۴h","24h range low"),a.rl],
+    [tx("سقف ۷ روز","7-day high"),a.wh],[tx("کف ۷ روز","7-day low"),a.wl],
+    [tx("+۵٪","+5%"),a.last*1.05],[tx("−۵٪","−5%"),a.last*.95]
   ].map(([name,v])=>{let hit=0;if(v>=a.last){for(let i=0;i<s.paths;i++)if(s.mx[i]>=v)hit++}else{for(let i=0;i<s.paths;i++)if(s.mn[i]<=v)hit++}return {name,v,d:v/a.last-1,p:hit/s.paths}});
   return {q,levels,fin};
 }
 function renderSimResults(){
   const st=simStats(),a=state.list[state.sel];
   const pc=$("sim-pcts");pc.textContent="";
-  [["میانه",st.q[2]],["بازهٔ ۵۰٪",fmt(st.q[1])+" – "+fmt(st.q[3])],["بازهٔ ۹۰٪",fmt(st.q[0])+" – "+fmt(st.q[4])]].forEach(([k,v])=>{const s=document.createElement("span");s.className="pill";s.innerHTML=`${k} <b class="num"></b>`;s.querySelector("b").textContent=typeof v==="number"?fmt(v):v;pc.append(s)});
+  [[tx("میانه","Median"),st.q[2]],[tx("بازهٔ ۵۰٪","50% range"),fmt(st.q[1])+" – "+fmt(st.q[3])],[tx("بازهٔ ۹۰٪","90% range"),fmt(st.q[0])+" – "+fmt(st.q[4])]].forEach(([k,v])=>{const s=document.createElement("span");s.className="pill";s.innerHTML=`${k} <b class="num"></b>`;s.querySelector("b").textContent=typeof v==="number"?fmt(v):v;pc.append(s)});
   const tb=$("lv-body");tb.textContent="";
   st.levels.forEach(l=>{const tr=document.createElement("tr");tr.innerHTML=`<td></td><td class="num"></td><td class="num ${l.d>=0?"up":"down"}"></td><td><div class="row" style="flex-wrap:nowrap"><span class="num" style="min-width:3.2em"></span><div class="bar" style="flex:1"><span></span></div></div></td>`;
     const td=tr.children;td[0].textContent=l.name;td[1].textContent=fmt(l.v);td[2].textContent=pct(l.d);td[3].querySelector(".num").textContent=Math.round(l.p*100)+"%";td[3].querySelector(".bar span").style.width=(l.p*100)+"%";tb.append(tr)});
@@ -417,14 +418,14 @@ $("csv").onchange=e=>{
       const cs=[];
       for(let i=start;i<rows.length;i++){const r=rows[i];const o=+r[io],h=+r[ih],l=+r[il],c=+r[ic];if(!(o>0&&h>0&&l>0&&c>0))continue;
         let t=r[it];t=isFinite(+t)?(+t>1e12?+t/1000:+t):Date.parse(t)/1000;cs.push({t:t||i*3600,o,h,l,c,v:iv>=0?(+r[iv]||1):1})}
-      if(cs.length<200)throw new Error(`فقط ${cs.length} کندل معتبر پیدا شد؛ حداقل ۲۰۰ کندل لازم است.`);
+      if(cs.length<200)throw new Error(tx(`فقط ${cs.length} کندل معتبر پیدا شد؛ حداقل ۲۰۰ کندل لازم است.`,`Only ${cs.length} valid candles found; at least 200 are needed.`));
       if(cs[0].t>cs[cs.length-1].t)cs.reverse();
       const name=f.name.replace(/\.[^.]+$/,"").toUpperCase().slice(0,10);
       const a=analyze(name,cs);a.csv=true;
       state.list=state.list.filter(x=>!x.csv);state.list.unshift(a);state.csv=true;
-      $("data-pill").className="pill live";$("data-pill").textContent="CSV شما: "+name+(state.source==="live"?" · بقیه زنده":" · بقیه نمونه");
+      $("data-pill").className="pill live";$("data-pill").textContent=tx("CSV شما: ","Your CSV: ")+name+(state.source==="live"?tx(" · بقیه زنده"," · others live"):tx(" · بقیه نمونه"," · others sample"));
       renderGrid();select(0);
-    }catch(err){$("data-pill").textContent=String(err.message||"CSV قابل خواندن نبود")}
+    }catch(err){$("data-pill").textContent=String(err.message||tx("CSV قابل خواندن نبود","Could not read the CSV"))}
     e.target.value="";
   };
   rd.readAsText(f);
@@ -451,7 +452,7 @@ let rz;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{drawMa
       if(t&&isFinite(v.chg24h)){t.textContent=pct(v.chg24h);t.className="chg num "+(v.chg24h>=0?"up":"down")}
       if(state.list[state.sel]===a){
         const cp=$("c-price");cp.textContent=fmtX(v.price);if(v.price!==prev)flash(cp,v.price>prev);
-        if(isFinite(v.chg24h)){const ce=$("c-chg");ce.className="s num "+(v.chg24h>=0?"up":"down");ce.textContent=pct(v.chg24h)+" (24h) · لحظه‌ای "+v.source}
+        if(isFinite(v.chg24h)){const ce=$("c-chg");ce.className="s num "+(v.chg24h>=0?"up":"down");ce.textContent=pct(v.chg24h)+" (24h)"+tx(" · لحظه‌ای "," · live ")+v.source}
       }
     },st=>{if(st.live){state.liveSource=st.source;setDataPill()}});
     // refresh live candles every 2 minutes, keep the selected coin

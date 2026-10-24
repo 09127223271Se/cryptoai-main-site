@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}CryptoAI · Crypto Radio{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/radio.css') }}">{% endblock %}
+{% block content %}
+<div class="wrap">
+  <div class="page-head">
+    <div>
+      <h1>Crypto <span>Radio</span></h1>
+      <p id="updated">Crypto news from every corner of the world</p>
+    </div>
+    <div class="ticker" id="ticker" aria-label="Market"></div>
+  </div>
+
+  <div class="dial" id="dial" role="tablist" aria-label="Stations"></div>
+
+  <div class="stage">
+    <div class="globe" id="globe">
+      <canvas id="cv" aria-label="Globe with crypto radio stations; drag to rotate"></canvas>
+      <div class="ring" aria-hidden="true"></div>
+      <span class="mapnote" id="mapnote" hidden>Satellite image did not load; stations still work</span>
+      <span class="hint">Drag to rotate · put a station in the ring or tap it</span>
+      <div class="zoom"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button></div>
+    </div>
+
+    <aside class="panel sheet" aria-live="polite">
+      <div class="tuner">
+        <span class="freq num" id="freq">CRYPTO FM</span>
+        <h2 id="st-name">–</h2>
+        <span class="where" id="st-where"></span>
+        <span class="where" id="st-clock" style="color:var(--signal)"></span>
+        <div class="player">
+          <button class="play" id="play" aria-label="Play">
+            <svg viewBox="0 0 24 24" id="ic-play"><path fill="currentColor" d="M7 4.5v15l13-7.5z"/></svg>
+            <svg viewBox="0 0 24 24" id="ic-pause" hidden><path fill="currentColor" d="M6 4h4.5v16H6zM13.5 4H18v16h-4.5z"/></svg>
+          </button>
+          <div class="eq" id="eq"><i></i><i></i><i></i><i></i><i></i></div>
+          <span class="voice" id="voice">Press play to hear the news</span>
+        </div>
+      </div>
+      <div class="news">
+        <h3>News from this station</h3>
+        <div id="news" style="display:grid;gap:10px"></div>
+      </div>
+      <div class="notes">
+        <div class="hd">
+          <h3>Which way do these stories push the market?</h3>
+          <button class="btn" id="reanalyze" hidden>Analyse again</button>
+        </div>
+        <div id="notes" style="display:grid;gap:8px"></div>
+        <span class="status" id="ai-s" role="status"></span>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>window.echarts={registerMap:function(n,j){if(n==="world")window.__worldGeo=j}};</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/world.js"></script>
+<script src="{{ asset('js/radio.js') }}"></script>
+{% endblock %}

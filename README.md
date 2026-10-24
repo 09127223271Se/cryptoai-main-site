@@ -88,3 +88,11 @@ static/data/stations.json   ایستگاه‌ها، خبرها و نکته‌ه�
 | `PRO_USDT_TRC20` | آدرس کیف پول تتر شبکهٔ TRON (آدرس عمومی، نه کلید) |
 | `PRO_PRICE_USDT` | قیمت ماهانه به تتر (پیش‌فرض ۹) |
 | `PRO_STARS` | قیمت ماهانه به Stars (پیش‌فرض ۵۰۰) |
+
+
+## English site and English channel
+
+- English pages: `/en`, `/en/radio`, `/en/trader`, `/en/analysis`, `/en/pro`. Every page has a فارسی / English switch in the menu.
+- News analysis is produced once in both languages (Persian and English titles, reasons and summaries).
+- `TELEGRAM_CHANNEL_EN` (e.g. `@CryptoAI_Global`): the bot posts the English card and caption there, at the same time as the Persian channel. The bot must be an admin of that channel.
+- `AUTO_PUBLISH` (default on): posts go straight to the channels and the admin gets a notification with a delete button. `AUTO_PUBLISH=0` restores approve/reject.

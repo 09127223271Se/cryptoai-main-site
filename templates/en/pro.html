@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}CryptoAI Pro{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/brief.css') }}">
+<style>
+.pro-hero{display:grid;gap:12px;max-width:760px;padding-block:8px}
+.pro-hero h1{font-family:var(--f-display);font-weight:400;font-size:clamp(32px,5.4vw,56px);line-height:1.12;text-wrap:balance}
+.pro-hero h1 span{color:var(--signal)}
+.pro-hero p{color:var(--muted);font-size:16px;max-width:60ch}
+.plans{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.plans{grid-template-columns:minmax(0,1fr)}}
+.plan{padding:18px;display:grid;gap:12px;align-content:start}
+.plan.pro{border-color:rgba(255,201,77,.6);background:linear-gradient(160deg,rgba(255,201,77,.10),rgba(34,211,238,.05) 60%),var(--panel)}
+.plan h2{font-size:20px;font-weight:800;display:flex;align-items:center;gap:8px}
+.plan .price{font-size:30px;font-weight:800}
+.plan .price small{font-size:14px;color:var(--muted);font-weight:500}
+.plan ul{list-style:none;display:grid;gap:8px;padding:0}
+.plan li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:6px;font-size:14.5px}
+.plan li::before{content:"✓";color:var(--up);font-weight:800}
+.plan li.no{color:var(--muted)}
+.plan li.no::before{content:"–";color:var(--muted)}
+.tag{font-size:12px;background:var(--signal);color:#1a1204;border-radius:999px;padding:1px 10px;font-weight:800}
+.pay{display:grid;gap:8px}
+.pay .btn{text-align:center}
+.checkout{padding:18px;display:grid;gap:12px}
+.addr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;overflow-wrap:anywhere}
+.addr code{font-family:var(--f-mono);font-size:14px;direction:ltr;unicode-bidi:isolate}
+.amount{font-family:var(--f-mono);font-size:28px;font-weight:700;color:var(--signal);direction:ltr;unicode-bidi:isolate}
+.steps{display:grid;gap:6px;color:var(--muted);font-size:14px;padding-inline-start:18px}
+.faq{display:grid;gap:8px}
+.faq details{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.faq summary{cursor:pointer;font-weight:700}
+.faq p{color:var(--muted);margin-top:6px}
+.sample{white-space:pre-wrap;background:var(--panel-2);border:1px solid var(--line);border-radius:12px 12px 12px 4px;padding:12px 14px;font-size:14px;line-height:1.9}
+</style>{% endblock %}
+{% block content %}
+<div class="wrap">
+  <section class="pro-hero">
+    <span class="eyebrow"><span class="live-dot"></span> CryptoAI Pro</span>
+    <h1>Know why the market moves, <span>before it does</span></h1>
+    <p>Every story that moves Bitcoin, gold, oil or stocks reaches your Telegram the moment it breaks, with its impact analysed. Plus a smart brief of all markets every morning.</p>
+  </section>
+
+  <div class="plans">
+    <section class="panel plan">
+      <h2>Free</h2>
+      <div class="price">Free <small>forever</small></div>
+      <ul>
+        <li>Market intelligence and news pressure on the site</li>
+        <li>Radio globe and live news</li>
+        <li>Trader and chart scanner</li>
+        <li>Public Telegram channel</li>
+        <li class="no">Instant alerts for market-moving news</li>
+        <li class="no">Smart morning brief</li>
+      </ul>
+      {% if channel %}<a class="btn" href="{{ channel }}" target="_blank" rel="noopener">Join the free channel</a>{% endif %}
+    </section>
+
+    <section class="panel plan pro">
+      <h2>Pro <span class="tag">Recommended</span></h2>
+      <div class="price"><span class="num">{{ '%g' % price_usdt }}</span> USDT <small>per month</small></div>
+      <ul>
+        <li>Everything in Free</li>
+        <li><b>Instant alerts</b>: market-moving news the moment it breaks, with its effect on Bitcoin, Ethereum, gold, oil, stocks and the dollar</li>
+        <li><b>Smart brief every morning</b>: news pressure on every market and the night's key stories</li>
+        <li>Private channel, no ads</li>
+        <li>Cancel any time</li>
+      </ul>
+      {% if pro_ready %}
+      <div class="pay">
+        {% if usdt_on %}<button class="btn primary big" id="pay-usdt">Pay with USDT (TRC20)</button>{% endif %}
+        <a class="btn big" href="/pro/stars" target="_blank" rel="noopener">Pay with Telegram Stars · <span class="num">{{ price_stars }}</span> ⭐</a>
+      </div>
+      {% else %}
+      <p class="status">Pro sign-ups open soon.{% if channel %} Join the free channel to hear first.{% endif %}</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <section class="panel checkout" id="checkout" hidden aria-live="polite">
+    <h2 style="font-size:19px;font-weight:800">Pay with USDT</h2>
+    <ol class="steps">
+      <li>Send exactly this amount on the <b>TRON (TRC20)</b> network. The number is unique to you and links the payment to you.</li>
+      <li>Keep this page open; the payment is confirmed automatically (usually in under 2 minutes).</li>
+      <li>Once confirmed, your one-time invite link to the Pro channel appears right here.</li>
+    </ol>
+    <div class="amount" id="co-amount"></div>
+    <div class="addr"><code id="co-wallet"></code><button class="btn" id="co-copy-w">Copy address</button><button class="btn" id="co-copy-a">Copy amount</button></div>
+    <p class="status" id="co-status">Waiting for payment…</p>
+    <a class="btn primary big" id="co-link" target="_blank" rel="noopener" hidden>Enter CryptoAI Pro</a>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Sample instant alert</h2></div>
+    <div class="sample">🚨 BREAKING
+
+The Fed cut interest rates by 0.25 percentage points
+
+Likely effect:
+🟢 Bitcoin ↑ moderate: cheaper money, more appetite for risk assets
+🟢 Gold ↑ moderate: weaker dollar and lower bond yields
+🔴 US Dollar ↓ moderate: the rate gap with the rest of the world narrows</div>
+  </section>
+
+  <section class="faq">
+    <div class="sec-head"><h2>FAQ</h2></div>
+    <details><summary>What happens after I pay?</summary><p>You get a one-time invite link to the private Pro channel. Your subscription runs for 30 days from the moment you join.</p></details>
+    <details><summary>How does renewal work?</summary><p>With Telegram Stars, Telegram renews monthly for you. With USDT you get a reminder 3 days before the end and pay again from this page.</p></details>
+    <details><summary>What if I send the wrong amount?</summary><p>Only the exact amount is confirmed automatically. If something goes wrong, message us in the free channel and we will check it by hand.</p></details>
+    <details><summary>Are these buy/sell signals?</summary><p>No. CryptoAI tells you which way each story pushes the market and why; trading decisions are yours.</p></details>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const btn = $("pay-usdt"); if (!btn) return;
+  let order = null, timer = null;
+  const copy = async (t, el) => { try { await navigator.clipboard.writeText(t); el.textContent = "Copied"; } catch (e) { el.textContent = t; } };
+  btn.onclick = async () => {
+    btn.disabled = true;
+    try {
+      const j = await (await fetch("/api/pro/order", { method: "POST" })).json();
+      if (!j.ok) { alertBox(j.error || "Error"); btn.disabled = false; return; }
+      order = j;
+      $("co-amount").textContent = j.amount.toFixed(2) + " USDT";
+      $("co-wallet").textContent = j.wallet;
+      $("co-copy-w").onclick = e => copy(j.wallet, e.target);
+      $("co-copy-a").onclick = e => copy(j.amount.toFixed(2), e.target);
+      $("checkout").hidden = false; $("checkout").scrollIntoView({ block: "start" });
+      timer = setInterval(poll, 15000); setTimeout(poll, 5000);
+    } catch (e) { alertBox("Could not connect; please try again."); btn.disabled = false; }
+  };
+  function alertBox(t) { $("checkout").hidden = false; $("co-status").textContent = t; }
+  async function poll() {
+    if (!order) return;
+    try {
+      const j = await (await fetch("/api/pro/order/" + order.id)).json();
+      if (j.status === "paid") {
+        clearInterval(timer);
+        $("co-status").textContent = "Payment confirmed 🎉 This link works only once:";
+        const l = $("co-link"); l.href = j.link; l.hidden = false;
+      } else if (j.status === "expired") {
+        clearInterval(timer); $("co-status").textContent = "This order has expired. If you already paid, message us in the free channel; otherwise press Pay with USDT again.";
+      } else { $("co-status").textContent = "Waiting for payment… (checked every 15 seconds)"; }
+    } catch (e) {}
+  }
+})();
+</script>
+{% endblock %}

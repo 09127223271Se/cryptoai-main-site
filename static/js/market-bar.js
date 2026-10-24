@@ -2,12 +2,20 @@
 (function () {
   const bar = document.getElementById("mbar");
   if (!bar || window.SITE_MODE !== "server") { if (bar) bar.hidden = true; return; }
-  const ITEMS = [
+  const EN = window.LANG === "en";
+  const ITEMS = EN ? [
+    ["spx", "S&P 500"], ["ndx", "Nasdaq"], ["dji", "Dow Jones"], ["vix", "VIX · fear"], ["dxy", "Dollar index"], ["us10y", "US 10Y yield"],
+    ["gold", "Gold · oz"], ["wti", "WTI oil"], ["brent", "Brent oil"], ["ftse", "FTSE 100"], ["bist", "BIST 100"], ["usdtry", "USD/TRY"],
+    ["total", "Crypto market cap"], ["btcd", "BTC dominance"], ["ethd", "ETH dominance"],
+    ["usdtd", "USDT dominance"], ["usdcd", "USDC dominance"], ["stablesd", "Stablecoin dominance"], ["othersd", "Others dominance"]
+  ] : [
     ["spx", "S&P 500"], ["ndx", "نزدک"], ["dji", "داو جونز"], ["vix", "VIX · ترس"], ["dxy", "شاخص دلار"], ["us10y", "بازده ۱۰ ساله آمریکا"],
     ["gold", "طلا · اونس"], ["wti", "نفت WTI"], ["brent", "نفت برنت"], ["ftse", "FTSE لندن"], ["bist", "بورس استانبول"], ["usdtry", "دلار/لیر"],
     ["total", "ارزش کل کریپتو"], ["btcd", "دامیننس BTC"], ["ethd", "دامیننس ETH"],
     ["usdtd", "دامیننس USDT"], ["usdcd", "دامیننس USDC"], ["stablesd", "دامیننس استیبل‌ها"], ["othersd", "دامیننس Others"]
   ];
+  const TX = EN ? { fut: " · futures, exchange delay about 10 min", idx: " · exchange delay up to 15 min", others: "outside the top 10 coins · ", live: "live · PAXG (tokenised gold, 1 oz) · " }
+                : { fut: " · قراردادهای آتی، تأخیر بورس حدود ۱۰ دقیقه", idx: " · تأخیر بورس ممکن است تا ۱۵ دقیقه باشد", others: "بیرون از ۱۰ کوین بزرگ · ", live: "لحظه‌ای · PAXG (توکن طلا، معادل یک اونس) · " };
   const el = {};
   ITEMS.forEach(([k, label]) => {
     const s = document.createElement("span"); s.className = "mb"; s.dataset.k = k;
@@ -32,14 +40,14 @@
     try {
       const m = await (await fetch((window.API_BASE || "") + "/api/markets")).json();
       if (m.gold && !goldLive) set("gold", usd(m.gold.price), m.gold.chg24h, m.gold.source);
-      if (m.wti) set("wti", usd(m.wti.price), m.wti.chg24h, m.wti.source + " · قراردادهای آتی، تأخیر بورس حدود ۱۰ دقیقه"); else set("wti", null);
-      if (m.brent) set("brent", usd(m.brent.price), m.brent.chg24h, m.brent.source + " · قراردادهای آتی، تأخیر بورس حدود ۱۰ دقیقه"); else set("brent", null);
+      if (m.wti) set("wti", usd(m.wti.price), m.wti.chg24h, m.wti.source + TX.fut); else set("wti", null);
+      if (m.brent) set("brent", usd(m.brent.price), m.brent.chg24h, m.brent.source + TX.fut); else set("brent", null);
       const IDX = { spx: 2, ndx: 2, dji: 2, vix: 2, dxy: 2, us10y: 3, ftse: 2, bist: 2, usdtry: 4 };
       for (const [k, dec] of Object.entries(IDX)) {
         const v = m[k];
         if (!v) { set(k, null); continue; }
         const txt = k === "us10y" ? v.price.toFixed(dec) + "%" : v.price.toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec });
-        set(k, txt, v.chg24h, v.source + " · تأخیر بورس ممکن است تا ۱۵ دقیقه باشد");
+        set(k, txt, v.chg24h, v.source + TX.idx);
       }
       const d = m.dominance;
       if (d) {
@@ -47,7 +55,7 @@
         set("total", big(d.total_mcap), d.total_chg24h, d.source);
         set("btcd", pc(d.btc), null, d.source); set("ethd", pc(d.eth), null, d.source);
         set("usdtd", pc(d.usdt), null, d.source); set("usdcd", pc(d.usdc), null, d.source);
-        set("stablesd", pc(d.stables), null, "USDT + USDC · " + d.source); set("othersd", pc(d.others), null, "بیرون از ۱۰ کوین بزرگ · " + d.source);
+        set("stablesd", pc(d.stables), null, "USDT + USDC · " + d.source); set("othersd", pc(d.others), null, TX.others + d.source);
       }
       window.MARKETS = m;
     } catch (e) {}
@@ -58,7 +66,7 @@
     if (sym !== "PAXG") return;
     goldLive = true;
     const b = el.gold.querySelector("b"), prev = parseFloat(b.dataset.v || "NaN");
-    set("gold", usd(v.price), v.chg24h, "لحظه‌ای · PAXG (توکن طلا، معادل یک اونس) · " + v.source);
+    set("gold", usd(v.price), v.chg24h, TX.live + v.source);
     b.dataset.v = v.price;
     if (isFinite(prev) && prev !== v.price) { b.style.color = v.price > prev ? "var(--up)" : "var(--down)"; setTimeout(() => { b.style.color = ""; }, 900); }
   });

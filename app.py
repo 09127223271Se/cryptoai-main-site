@@ -38,6 +38,9 @@ if trader_engine.trader_bp is not None:
     app.register_blueprint(trader_engine.trader_bp)      # /api/trader/scan, /api/trader/setup/<coin>
 
 PAGES = {"home": "/", "pro": "/pro", "radio": "/radio", "trader": "/trader", "analysis": "/analysis", "sales": "/sales", "admin": "/admin"}
+PAGES_EN = {"home": "/en", "pro": "/en/pro", "radio": "/en/radio", "trader": "/en/trader", "analysis": "/en/analysis",
+            "sales": "/sales", "admin": "/admin"}
+PUBLIC = ("home", "pro", "radio", "trader", "analysis")
 
 
 # ---------- admin login (password lives only in Render: ADMIN_PASSWORD) ----------
@@ -58,21 +61,24 @@ def admin_required(api=False):
     return deco
 
 
-def channel_url() -> str:
-    """Public Telegram channel link for the 'join' buttons (PUBLIC_CHANNEL_URL, or derived from @channel)."""
-    url = os.environ.get("PUBLIC_CHANNEL_URL", "").strip()
+def channel_url(lang: str = "fa") -> str:
+    """Public Telegram channel link for the 'join' buttons (PUBLIC_CHANNEL_URL[_EN], or derived from @channel)."""
+    url = os.environ.get("PUBLIC_CHANNEL_URL_EN" if lang == "en" else "PUBLIC_CHANNEL_URL", "").strip()
     if url:
         return url
-    ch = os.environ.get("TELEGRAM_CHANNEL_ID", "").strip()
+    ch = os.environ.get("TELEGRAM_CHANNEL_EN" if lang == "en" else "TELEGRAM_CHANNEL_ID", "").strip()
     return f"https://t.me/{ch[1:]}" if ch.startswith("@") else ""
 
 
-def page(name: str, template: str, **extra):
-    """Render a page in server mode (links to Flask routes, AI through /api/ai)."""
+def page(name: str, template: str, lang: str = "fa", **extra):
+    """Render a page in server mode (links to Flask routes, AI through /api/ai). lang='en' uses templates/en/."""
+    pages = PAGES_EN if lang == "en" else PAGES
+    alt = (PAGES if lang == "en" else PAGES_EN)[name] if name in PUBLIC else None
     return render_template(
-        template, page=name, mode="server", api_base="", is_admin=is_admin(), channel=channel_url(),
+        ("en/" + template) if lang == "en" else template, page=name, mode="server", api_base="", lang=lang,
+        is_admin=is_admin(), channel=channel_url(lang), alt_url=alt,
         asset=lambda p: url_for("static", filename=p) if p else "/static/",
-        link=lambda n: PAGES[n], **extra,
+        link=lambda n: pages[n], **extra,
     )
 
 
@@ -147,6 +153,35 @@ def trader_page():
 @app.route("/analysis")
 def analysis_page():
     return page("analysis", "analysis.html")
+
+
+# ---------- English site ----------
+@app.route("/en")
+@app.route("/en/")
+def home_en():
+    return page("home", "brief.html", "en")
+
+
+@app.route("/en/radio")
+def radio_en():
+    return page("radio", "index.html", "en")
+
+
+@app.route("/en/trader")
+def trader_en():
+    return page("trader", "trader.html", "en")
+
+
+@app.route("/en/analysis")
+def analysis_en():
+    return page("analysis", "analysis.html", "en")
+
+
+@app.route("/en/pro")
+def pro_en():
+    st = pro.stats()
+    return page("pro", "pro.html", "en", pro_ready=st["ready"], usdt_on=st["ready"] and st["usdt_wallet"],
+                price_usdt=st["price_usdt"], price_stars=st["price_stars"])
 
 
 @app.route("/sales")
@@ -272,11 +307,13 @@ def api_tts():
     st = next((s for s in data.get("stations", []) if s.get("id") == sid), None)
     if not st:
         return jsonify({"ok": False, "error": "unknown station"}), 404
+    want_en = request.args.get("l") == "en"
     if i < 0:
-        text, lang = f"این‌جا رادیو کریپتو، {st['fa']}. خبرهای تازهٔ کریپتو را می‌شنوید.", "fa"
+        text, lang = ((f"This is Crypto Radio, {st['en']}. Here is the latest crypto news.", "en") if want_en else
+                      (f"این‌جا رادیو کریپتو، {st['fa']}. خبرهای تازهٔ کریپتو را می‌شنوید.", "fa"))
     elif i < len(st.get("news", [])):
         n = st["news"][i]
-        lang = "en" if n.get("lang") == "en" else "fa"
+        lang = "en" if (want_en or n.get("lang") == "en") else "fa"
         text = n["en"] if lang == "en" else f"{n['t']}. {n['b']}"
     else:
         return jsonify({"ok": False, "error": "unknown item"}), 404

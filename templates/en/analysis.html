@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}CryptoAI · News Analysis{% endblock %}
+{% block content %}
+<div class="wrap narrow" style="margin-inline:auto">
+  <div class="page-head">
+    <div>
+      <h1>Smart <span>news analysis</span></h1>
+      <p>Paste any news story. The AI tells you how it affects Bitcoin, Ethereum, altcoins, gold, oil, US stocks and the dollar, and why.</p>
+    </div>
+  </div>
+
+  <section class="panel">
+    <div class="pb">
+      <div class="field">
+        <label for="news-text">News text</label>
+        <textarea id="news-text" rows="6" placeholder="For example: The Fed cut interest rates by 0.25 percentage points…"></textarea>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1;min-width:160px">
+          <label for="focus">Or pick a topic</label>
+          <select id="focus">
+            <option value="general">General</option>
+            <option value="Bitcoin">Bitcoin</option>
+            <option value="Ethereum">Ethereum</option>
+            <option value="Altcoins">Altcoins</option>
+          </select>
+        </div>
+        <button id="btn-analyze" class="btn primary" style="align-self:end;padding-block:9px">Analyse</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="result-box" hidden>
+    <div class="ph"><h2>Result</h2><button class="btn" id="copy">Copy</button></div>
+    <div class="pb"><div class="out" id="result"></div><span class="status" id="st" role="status"></span></div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const prompt = (text, focus) => `You are a senior cross-market analyst for a global crypto & markets website.
+${text ? "Analyse this news item:\n\"\"\"\n" + text.slice(0, 6000) + "\n\"\"\"" : "Explain what usually moves this market right now and what to watch: " + focus + ". You have no live data; do not quote today's prices."}
+Answer in English with these sections and short lines:
+1) Summary (2 lines)
+2) Effect on markets — one line each for: Bitcoin, Ethereum, Altcoins, Gold, Oil, S&P 500, US Dollar. For each: ↑ / ↓ / neutral, strength (weak/moderate/strong), and the channel of effect in one short sentence (for example: stocks down -> risk-off -> BTC usually follows; oil up -> inflation -> later rate cuts -> pressure on crypto).
+3) What to watch next (2 to 3 items)
+No buy/sell advice, no price targets, no entry points.`;
+
+  $("btn-analyze").onclick = async () => {
+    const btn = $("btn-analyze"), out = $("result"), st = $("st");
+    const text = $("news-text").value.trim(), focus = $("focus").value;
+    btn.disabled = true; btn.textContent = "Analysing…"; $("result-box").hidden = false; out.textContent = ""; st.textContent = "Please wait…";
+    try {
+      const t = await AI.ask(prompt(text, focus), { onText: ({ text }) => { out.textContent = text; } });
+      out.textContent = t; st.textContent = "";
+    } catch (e) { st.textContent = AI.errorText(e); }
+    btn.disabled = false; btn.textContent = "Analyse";
+  };
+  $("copy").onclick = async () => { try { await navigator.clipboard.writeText($("result").textContent); $("st").textContent = "Copied"; } catch (e) { const r = document.createRange(); r.selectNodeContents($("result")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $("st").textContent = "Text selected; press Ctrl+C"; } };
+})();
+</script>
+{% endblock %}

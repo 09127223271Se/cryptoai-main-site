@@ -528,6 +528,7 @@ def _build():
                 "t": fa.get("t") or it["title"],
                 "b": fa.get("b") or it["desc"],
                 "en": it["title"] + ". " + it["desc"],
+                "en_t": it["title"], "en_b": it["desc"],
                 "lang": "fa" if fa.get("t") else "en",
                 "kind": it.get("kind", "crypto"),
                 "imp": fa.get("imp", 1),

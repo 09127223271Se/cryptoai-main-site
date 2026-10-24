@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}CryptoAI · Market Intelligence{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/brief.css') }}">{% endblock %}
+{% block content %}
+<div class="wrap">
+  <section class="hero">
+    <div class="hero-text">
+      <span class="eyebrow"><span class="live-dot"></span> Market intelligence · live</span>
+      <h1>What is moving <span>the markets today?</span></h1>
+      <p>AI reads the world's market-moving news (central banks, stocks, oil and crypto) and shows which way each story pushes Bitcoin, gold, oil, stocks and the dollar, and why.</p>
+      <div class="row">
+        {% if channel %}<a class="btn primary big" href="{{ channel }}" target="_blank" rel="noopener">Join the free Telegram channel</a>{% endif %}
+        <a class="btn big" href="{{ link('radio') }}">Listen to Crypto Radio</a>
+      </div>
+    </div>
+    <div class="hero-meta">
+      <span class="status" id="updated">Reading the latest news…</span>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-assets">
+    <div class="sec-head">
+      <h2 id="h-assets">News pressure on each market</h2>
+      <span class="status">Tap a card to see which stories are moving it</span>
+    </div>
+    <div class="assets" id="assets"></div>
+    <div class="drawer panel" id="drawer" hidden>
+      <div class="drawer-head">
+        <div><h3 id="dr-title"></h3><span class="pressure" id="dr-label"></span></div>
+        <button class="btn" id="dr-close" aria-label="Close">Close</button>
+      </div>
+      <p class="dr-summary" id="dr-summary"></p>
+      <div class="drivers" id="dr-list"></div>
+    </div>
+  </section>
+
+  <section class="cta panel">
+    <div>
+      <h2>Get the market-moving news first</h2>
+      <p>With CryptoAI Pro, every story that shakes the market reaches your Telegram the moment it breaks, with its impact on Bitcoin, gold and the dollar. Plus a smart morning brief of all markets.</p>
+    </div>
+    <div class="row">
+      <a class="btn primary big" href="{{ link('pro') }}">Discover Pro</a>
+      {% if channel %}<a class="btn big" href="{{ channel }}" target="_blank" rel="noopener">Free channel</a>{% endif %}
+    </div>
+  </section>
+
+  <section aria-labelledby="h-feed">
+    <div class="sec-head">
+      <h2 id="h-feed">Market-moving news</h2>
+      <div class="seg" role="group" aria-label="News filter" id="filters">
+        <button aria-pressed="true" data-f="all">All</button>
+        <button aria-pressed="false" data-f="top">Top</button>
+        <button aria-pressed="false" data-f="crypto">Crypto</button>
+        <button aria-pressed="false" data-f="macro">Global economy</button>
+      </div>
+    </div>
+    <div class="asset-filter" id="asset-filter" hidden><span id="af-text"></span><button class="btn" id="af-clear">All news</button></div>
+    <div class="feed" id="feed"></div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ asset('js/brief.js') }}"></script>{% endblock %}
