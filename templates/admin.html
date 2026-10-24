@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}CryptoAI · پنل مدیر{% endblock %}
+{% block content %}
+<div class="wrap narrow" style="margin-inline:auto">
+  <div class="page-head">
+    <div><h1>پنل <span>مدیر</span></h1>
+      <p>ایجنت تلگرام از خبرهای زنده پست فارسی می‌سازد و برای تأیید به تلگرام شما می‌فرستد. فقط بعد از زدن «تأیید» در کانال منتشر می‌شود.</p></div>
+    <a class="btn" href="/logout">خروج</a>
+  </div>
+
+  <section class="panel">
+    <div class="ph"><h2>وضعیت ایجنت تلگرام</h2>
+      {% if bot.ready and bot.channel_set and bot.webhook_ok %}<span class="pill live">فعال</span>
+      {% else %}<span class="pill warn">نیاز به تنظیم</span>{% endif %}</div>
+    <div class="pb">
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <tr><td style="padding:6px 0;color:var(--muted)">ربات (TELEGRAM_BOT_TOKEN)</td><td>{{ "✅ وصل" if cfg.token else "❌ تنظیم نشده" }}</td></tr>
+        <tr><td style="padding:6px 0;color:var(--muted)">مدیر تأییدکننده (TELEGRAM_ADMIN_CHAT)</td><td>{{ "✅ تنظیم شده" if cfg.admin else "❌ تنظیم نشده" }}</td></tr>
+        <tr><td style="padding:6px 0;color:var(--muted)">کانال انتشار (TELEGRAM_CHANNEL_ID)</td><td>{{ cfg.channel if cfg.channel else "❌ تنظیم نشده" }}</td></tr>
+        <tr><td style="padding:6px 0;color:var(--muted)">دکمه‌های تأیید/رد (webhook)</td><td>{% if bot.webhook_ok %}✅ وصل{% elif bot.webhook_error %}❌ {{ bot.webhook_error }}{% else %}در انتظار{% endif %}</td></tr>
+        <tr><td style="padding:6px 0;color:var(--muted)">پست خودکار</td><td>{{ "هر " ~ cfg.every ~ " دقیقه" if cfg.every else "خاموش (فقط با /news)" }}</td></tr>
+        <tr><td style="padding:6px 0;color:var(--muted)">پیش‌نویس / منتشر / رد</td><td class="num">{{ bot.drafts_sent }} / {{ bot.published }} / {{ bot.rejected }}</td></tr>
+        {% if bot.last_error %}<tr><td style="padding:6px 0;color:var(--muted)">آخرین خطا</td><td style="color:var(--down)">{{ bot.last_error }}</td></tr>{% endif %}
+      </table>
+      <div class="row">
+        <button class="btn primary" id="draft" {% if not bot.ready %}disabled{% endif %}>ساخت پست خبری و فرستادن برای تأیید</button>
+        <span class="status" id="st" role="status"></span>
+      </div>
+      <p class="status">در خود تلگرام هم می‌توانید به ربات بنویسید: <b>/news</b> برای پست تازه، <b>/status</b> برای وضعیت.</p>
+    </div>
+  </section>
+
+  {% if bot.posted %}
+  <section class="panel">
+    <div class="ph"><h2>آخرین پست‌های منتشرشده</h2></div>
+    <div class="pb">{% for p in bot.posted %}<div class="out" style="min-height:0">{{ p.text }}…</div>{% endfor %}</div>
+  </section>
+  {% endif %}
+
+  <section class="panel">
+    <div class="ph"><h2>ابزارهای مدیر</h2></div>
+    <div class="pb"><div class="row">
+      <a class="btn" href="/sales">پیدا کردن مشتری</a>
+      <a class="btn" href="/trader">تریدر (ارسال پست تحلیلی برای تأیید)</a>
+      <a class="btn" href="/api/health" target="_blank" rel="noopener">وضعیت فنی سرور</a>
+    </div></div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById("draft").onclick = async () => {
+  const b = document.getElementById("draft"), st = document.getElementById("st");
+  b.disabled = true; st.textContent = "در حال ساختن پست از خبرهای زنده…";
+  try { const j = await (await fetch("/api/agent/draft", { method: "POST" })).json(); st.textContent = j.ok ? j.message : ("خطا: " + j.error); }
+  catch (e) { st.textContent = "سرور جواب نداد"; }
+  b.disabled = false;
+};
+</script>
+{% endblock %}

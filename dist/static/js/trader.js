@@ -390,7 +390,7 @@ Do NOT give entry points, targets, stop-losses or buy/sell advice. If something 
 })();
 
 /* ---------- send draft to the Telegram approval bot (server only) ---------- */
-if(window.SITE_MODE==="server"){
+if(window.SITE_MODE==="server"&&window.IS_ADMIN){
   $("send-tg").hidden=false;
   $("send-tg").onclick=async()=>{
     const s=$("copy-s");s.textContent="در حال ارسال…";$("send-tg").disabled=true;

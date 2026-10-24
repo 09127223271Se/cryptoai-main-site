@@ -1,19 +1,25 @@
 """
 CryptoAI Main Site — یک سایت واحد
-کره رادیو + تریدر + تحلیل کریپتو + پیدا کردن مشتری
+عمومی: کره رادیو + تریدر + تحلیل کریپتو
+فقط مدیر (/admin): پیدا کردن مشتری + پنل ایجنت تلگرام
 """
 
-import json
+import hmac
 import os
+import secrets
 import sys
+import threading
 import time
+from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+from functools import wraps
 
-from flask import Flask, jsonify, render_template, request, url_for
+from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 
 import ai_client
 import news_live
+import telegram_bot
 import trader_engine
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -21,22 +27,54 @@ BUSINESS_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "crypto-business"))
 if os.path.isdir(BUSINESS_PATH):
     sys.path.insert(0, BUSINESS_PATH)
 
-STATIONS_FILE = os.path.join(BASE_DIR, "static", "data", "stations.json")
-
 app = Flask(__name__, static_folder="static", template_folder="templates")
+app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
+app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax",
+                  SESSION_COOKIE_SECURE=bool(os.environ.get("RENDER")), PERMANENT_SESSION_LIFETIME=60 * 60 * 24 * 14)
 if trader_engine.trader_bp is not None:
     app.register_blueprint(trader_engine.trader_bp)      # /api/trader/scan, /api/trader/setup/<coin>
 
-PAGES = {"home": "/", "trader": "/trader", "analysis": "/analysis", "sales": "/sales"}
+PAGES = {"home": "/", "trader": "/trader", "analysis": "/analysis", "sales": "/sales", "admin": "/admin"}
 
 
-def page(name: str, template: str):
+# ---------- admin login (password lives only in Render: ADMIN_PASSWORD) ----------
+def is_admin() -> bool:
+    return bool(session.get("admin"))
+
+
+def admin_required(api=False):
+    def deco(fn):
+        @wraps(fn)
+        def inner(*a, **kw):
+            if is_admin():
+                return fn(*a, **kw)
+            if api:
+                return jsonify({"ok": False, "error": "فقط مدیر سایت"}), 401
+            return redirect(url_for("admin_page", next=request.path))
+        return inner
+    return deco
+
+
+def page(name: str, template: str, **extra):
     """Render a page in server mode (links to Flask routes, AI through /api/ai)."""
     return render_template(
-        template, page=name, mode="server", api_base="",
+        template, page=name, mode="server", api_base="", is_admin=is_admin(),
         asset=lambda p: url_for("static", filename=p) if p else "/static/",
-        link=lambda n: PAGES[n],
+        link=lambda n: PAGES[n], **extra,
     )
+
+
+# ---------- Telegram agent: start once per process ----------
+_boot = {"done": False}
+
+
+@app.before_request
+def _boot_agent():
+    if not _boot["done"]:
+        _boot["done"] = True
+        news_live.get_stations()                     # start the first news refresh
+        threading.Thread(target=telegram_bot.ensure_webhook, daemon=True).start()
+        telegram_bot.start_loop()
 
 
 # ---------- Pages ----------
@@ -56,8 +94,44 @@ def analysis_page():
 
 
 @app.route("/sales")
+@admin_required()
 def sales_page():
     return page("sales", "sales.html")
+
+
+_login_fails = defaultdict(deque)
+
+
+@app.route("/admin", methods=["GET", "POST"])
+def admin_page():
+    error = None
+    if request.method == "POST":
+        ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0]
+        q = _login_fails[ip]
+        while q and time.time() - q[0] > 900:
+            q.popleft()
+        pw = os.environ.get("ADMIN_PASSWORD", "")
+        if len(q) >= 8:
+            error = "تلاش زیاد؛ ۱۵ دقیقه بعد دوباره امتحان کنید."
+        elif not pw:
+            error = "رمز مدیر روی سرور تنظیم نشده (ADMIN_PASSWORD در Render)."
+        elif hmac.compare_digest(request.form.get("password", ""), pw):
+            session.permanent = True
+            session["admin"] = True
+            nxt = request.args.get("next", "/admin")
+            return redirect(nxt if nxt.startswith("/") and not nxt.startswith("//") else "/admin")
+        else:
+            q.append(time.time())
+            error = "رمز درست نیست."
+    if not is_admin():
+        return page("admin", "login.html", error=error)
+    return page("admin", "admin.html", bot=telegram_bot.status(), cfg=telegram_bot.cfg())
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
 
 
 # ---------- Health & AI ----------
@@ -68,7 +142,7 @@ def health():
         "time": datetime.now(timezone.utc).isoformat(),
         "business_module": os.path.isdir(BUSINESS_PATH),
         "ai_provider": ai_client.provider(),
-        "telegram": bool(os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_ADMIN_CHAT")),
+        "telegram": telegram_bot.ready(),
         "market_data_errors": dict(list(trader_engine.last_errors.items())[:5]),
         "news": news_live.status(),
     })
@@ -80,8 +154,20 @@ def ai_status():
     return jsonify({"ok": p is not None, "provider": p, "images": False})
 
 
+_ai_hits = defaultdict(deque)
+AI_PER_HOUR = int(os.environ.get("AI_PER_HOUR", 30))
+
+
 @app.route("/api/ai", methods=["POST"])
 def ai_ask():
+    if not is_admin():   # visitors share a small hourly budget per IP so nobody can drain the Groq quota
+        ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0]
+        q = _ai_hits[ip]
+        while q and time.time() - q[0] > 3600:
+            q.popleft()
+        if len(q) >= AI_PER_HOUR:
+            return jsonify({"ok": False, "code": "rate_limited", "error": "limit"}), 429
+        q.append(time.time())
     data = request.get_json() or {}
     prompt = (data.get("prompt") or "").strip()
     if not prompt:
@@ -163,24 +249,61 @@ def api_prices():
 
 
 @app.route("/api/trader/send", methods=["POST"])
+@admin_required(api=True)
 def api_trader_send():
     """Send a drafted post to the admin's Telegram with Approve / Reject buttons."""
     data = request.get_json() or {}
     text = (data.get("text") or "").strip()
-    sym = (data.get("symbol") or "post").upper()
     if not text:
         return jsonify({"ok": False, "error": "متن خالی است"}), 400
-    if not (os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_ADMIN_CHAT")):
+    if not telegram_bot.ready():
         return jsonify({"ok": False, "error": "ربات تلگرام روی سرور تنظیم نشده (TELEGRAM_BOT_TOKEN و TELEGRAM_ADMIN_CHAT)"}), 503
     try:
-        trader_engine.send_for_approval(text[:4000], f"trader-{sym}-{int(time.time())}")
+        telegram_bot.send_for_approval(text[:4000], "trader")
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": f"ارسال نشد: {e}"}), 502
 
 
+# ---------- Telegram agent ----------
+@app.route("/telegram/webhook", methods=["POST"])
+def telegram_webhook():
+    if not hmac.compare_digest(request.headers.get("X-Telegram-Bot-Api-Secret-Token", ""), telegram_bot.webhook_secret()):
+        return "forbidden", 403
+    try:
+        telegram_bot.handle_update(request.get_json(force=True) or {})
+    except Exception as e:
+        telegram_bot._state["last_error"] = str(e)[:200]
+    return "ok"
+
+
+@app.route("/api/agent/draft", methods=["POST"])
+@admin_required(api=True)
+def api_agent_draft():
+    try:
+        return jsonify({"ok": True, "message": telegram_bot.draft_news_now(force=True)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)[:200]}), 502
+
+
+@app.route("/api/agent/run", methods=["GET", "POST"])
+def api_agent_run():
+    """Wake-up call for an outside scheduler (the free server sleeps when idle).
+    Safe to leave open: it never drafts more than once per AUTO_POST_MINUTES, and drafts still need your approval."""
+    news_live.get_stations()
+    res = telegram_bot.tick()
+    return jsonify({"ok": True, "drafted": bool(res and "فرستاده شد" in res)})
+
+
+@app.route("/api/agent/status")
+@admin_required(api=True)
+def api_agent_status():
+    return jsonify(telegram_bot.status())
+
+
 # ---------- crypto-business crews (optional) ----------
 @app.route("/api/prospect", methods=["POST"])
+@admin_required(api=True)
 def api_prospect():
     data = request.get_json() or {}
     icp = data.get("icp", "channel_admins")

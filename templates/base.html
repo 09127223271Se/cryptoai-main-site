@@ -14,6 +14,7 @@
     window.SITE_MODE = "{{ mode }}";
     window.API_BASE = "{{ api_base }}";
     window.ASSET_BASE = "{{ asset('') }}";
+    window.IS_ADMIN = {{ 'true' if is_admin else 'false' }};
   </script>
   <script src="{{ asset('js/ai.js') }}"></script>
   <script src="{{ asset('js/live-prices.js') }}"></script>
@@ -29,7 +30,8 @@
       <a href="{{ link('home') }}" {% if page=='home' %}aria-current="page"{% endif %}>کره رادیو</a>
       <a href="{{ link('trader') }}" {% if page=='trader' %}aria-current="page"{% endif %}>تریدر</a>
       <a href="{{ link('analysis') }}" {% if page=='analysis' %}aria-current="page"{% endif %}>تحلیل کریپتو</a>
-      <a href="{{ link('sales') }}" {% if page=='sales' %}aria-current="page"{% endif %}>پیدا کردن مشتری</a>
+      {% if is_admin %}<a href="{{ link('sales') }}" {% if page=='sales' %}aria-current="page"{% endif %}>پیدا کردن مشتری</a>
+      <a href="{{ link('admin') }}" {% if page=='admin' %}aria-current="page"{% endif %}>پنل مدیر</a>{% endif %}
     </div>
     <div class="nav-status" id="nav-status"><span class="dot"></span><span id="nav-status-t">در حال بررسی…</span></div>
   </nav>

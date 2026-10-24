@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}CryptoAI · ورود مدیر{% endblock %}
+{% block content %}
+<div class="wrap" style="max-width:420px;margin-inline:auto">
+  <div class="page-head"><div><h1>ورود <span>مدیر</span></h1>
+    <p>پیدا کردن مشتری و پنل ایجنت تلگرام فقط برای مدیر سایت است.</p></div></div>
+  <section class="panel">
+    <form class="pb" method="post" autocomplete="on">
+      <div class="field">
+        <label for="password">رمز مدیر</label>
+        <input type="password" id="password" name="password" required autofocus autocomplete="current-password">
+      </div>
+      {% if error %}<p class="status" style="color:var(--down)" role="alert">{{ error }}</p>{% endif %}
+      <button class="btn primary" type="submit">ورود</button>
+      <p class="status">رمز همان مقدار ADMIN_PASSWORD است که در تنظیمات Render گذاشته‌اید.</p>
+    </form>
+  </section>
+</div>
+{% endblock %}
