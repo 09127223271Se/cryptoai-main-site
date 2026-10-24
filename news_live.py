@@ -191,6 +191,13 @@ def _market_hint():
         for s in ("BTC", "ETH"):
             rows, src = trader_engine.fetch_rows(s, "1h", 25)
             parts.append(f"{s} {rows[-1][4]:,.2f} USD ({(rows[-1][4] / rows[0][4] - 1) * 100:+.2f}% 24h, {src})")
+        try:
+            import markets
+            extra = markets.hint()
+            if extra:
+                parts.append(extra)
+        except Exception:
+            pass
         return "; ".join(parts)
     except Exception:
         return "unknown"

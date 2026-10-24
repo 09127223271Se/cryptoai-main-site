@@ -387,7 +387,10 @@ $("reanalyze").onclick = async () => {
   if (ctl) ctl.abort(); ctl = new AbortController();
   $("reanalyze").disabled = true; $("ai-s").textContent = "هوش مصنوعی در حال تحلیل اثر خبرها…";
   const live = Object.entries(marketNow).map(([c, v]) => `${c} ${fmtPrice(v.price)} (${(v.chg24h * 100).toFixed(2)}% 24h)`).join(", ");
-  const m = live ? "live now: " + live : (DATA.market || []).map(x => `${x.c} ${x.p}`).join(", ") + " (" + DATA.market_date + ")";
+  const M = window.MARKETS || {}, D = M.dominance;
+  const macro = [M.gold && `gold ${M.gold.price.toFixed(0)} USD/oz`, M.wti && `WTI ${M.wti.price.toFixed(2)}`, M.brent && `Brent ${M.brent.price.toFixed(2)}`,
+    D && `BTC dominance ${D.btc.toFixed(2)}%, USDT dominance ${D.usdt.toFixed(2)}%, total cap ${(D.total_mcap / 1e12).toFixed(2)}T`].filter(Boolean).join("; ");
+  const m = (macro ? macro + "; " : "") + (live ? "live now: " + live : (DATA.market || []).map(x => `${x.c} ${x.p}`).join(", ") + " (" + DATA.market_date + ")");
   const prompt = `You are a crypto market analyst for a Persian-language Telegram channel.
 Below are recent news items from one region (${s.en}). Decide which coins or market segments each item could move, and in which direction.
 Reply with ONLY a JSON object like this (max 4 notes):

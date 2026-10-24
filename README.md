@@ -29,6 +29,7 @@ static/data/stations.json   ایستگاه‌ها، خبرها و نکته‌ه�
 - **قیمت لحظه‌ای:** مرورگر بازدیدکننده مستقیم به WebSocket بازار Binance وصل می‌شود (هر معامله، حدود هر ثانیه). اگر وصل نشد Coinbase، و در آخر `/api/prices` هر ۱۰ ثانیه.
 - **کندل‌های تریدر:** سرور به‌ترتیب از Binance، OKX، Bybit و Coinbase می‌گیرد. اگر سرور به هیچ‌کدام نرسید، مرورگر مستقیم از Binance می‌گیرد. هر ۲ دقیقه به‌روز می‌شود.
 - **خبرها (`news_live.py`):** هر ۱۰ دقیقه از RSS سایت‌های CoinDesk، Cointelegraph، Decrypt، The Block، Bitcoin Magazine و CryptoSlate. هر خبر بر اساس کشور یا موضوعش به ایستگاه مربوط روی کره می‌رود. Groq عنوان و خلاصهٔ فارسی و نکته‌های بالا/پایین را می‌نویسد. لینک و زمان دقیق هر خبر کنارش است.
+- **نوار بازار (همهٔ صفحه‌ها):** طلا لحظه‌ای (PAXG، معادل یک اونس)، نفت WTI و برنت (قراردادهای آتی از Yahoo/Stooq، تأخیر بورس حدود ۱۰ دقیقه)، ارزش کل بازار کریپتو و دامیننس BTC، ETH، USDT، USDC، استیبل‌ها و Others (CoinGecko، با CoinPaprika به‌عنوان پشتیبان).
 - **ساعت:** ساعت محلی هر شهر و ساعت بازدیدکننده، ثانیه‌به‌ثانیه.
 
 ## API
@@ -37,6 +38,7 @@ static/data/stations.json   ایستگاه‌ها، خبرها و نکته‌ه�
 - `GET  /api/ai/status` و `POST /api/ai` — هوش مصنوعی سایت
 - `GET  /api/stations` — ایستگاه‌ها با خبرهای زنده
 - `GET  /api/prices?symbols=BTC,ETH` — قیمت و تغییر ۲۴ ساعت
+- `GET  /api/markets` — طلا، نفت، ارزش کل بازار و دامیننس‌ها
 - `GET  /api/trader/candles?symbols=BTC,ETH&interval=1h&limit=240` — کندل زندهٔ Binance (۶۰ ثانیه کش)
 - `GET  /api/trader/scan` و `GET /api/trader/setup/<COIN>` — اسکن و ستاپ از سمت سرور
 - `POST /api/trader/send` — ارسال پست به ربات برای تأیید (دکمهٔ تأیید/رد)

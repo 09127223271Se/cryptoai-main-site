@@ -18,6 +18,7 @@ from functools import wraps
 from flask import Flask, Response, jsonify, redirect, render_template, request, session, url_for
 
 import ai_client
+import markets
 import news_live
 import telegram_bot
 import trader_engine
@@ -244,6 +245,12 @@ def api_candles():
     if out["ok"]:
         _candle_cache.update(key=key, at=time.time(), data=out)
     return jsonify(out)
+
+
+@app.route("/api/markets")
+def api_markets():
+    """Gold, oil, total crypto market cap and dominance (BTC, ETH, USDT, USDC, stablecoins, Others)."""
+    return jsonify(markets.get_markets())
 
 
 _price_cache = {"key": None, "at": 0, "data": None}
