@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}CryptoAI · تحلیل کریپتو{% endblock %}
+{% block content %}
+<div class="wrap narrow" style="margin-inline:auto">
+  <div class="page-head">
+    <div>
+      <h1>تحلیل و <span>محتوای</span> کریپتو</h1>
+      <p>خبر را بچسبانید یا موضوع را انتخاب کنید. هوش مصنوعی جهت بازار، کوین‌های متأثر و متن پست سه‌زبانه را می‌نویسد؛ بدون نقطهٔ ورود و بدون سیگنال.</p>
+    </div>
+  </div>
+
+  <section class="panel">
+    <div class="pb">
+      <div class="field">
+        <label for="news-text">متن خبر (اختیاری)</label>
+        <textarea id="news-text" rows="6" placeholder="خبر را اینجا بچسبانید…"></textarea>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1;min-width:160px">
+          <label for="focus">موضوع</label>
+          <select id="focus">
+            <option value="general">عمومی</option>
+            <option value="Bitcoin">Bitcoin</option>
+            <option value="Ethereum">Ethereum</option>
+            <option value="Altcoins">Altcoins</option>
+          </select>
+        </div>
+        <button id="btn-analyze" class="btn primary" style="align-self:end;padding-block:9px">شروع تحلیل</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="result-box" hidden>
+    <div class="ph"><h2>نتیجه</h2><button class="btn" id="copy">کپی</button></div>
+    <div class="pb"><div class="out" id="result"></div><span class="status" id="st" role="status"></span></div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const prompt = (text, focus) => `You are the analyst of a crypto news channel that publishes in Persian, English and Arabic.
+${text ? "Analyse this news item:\n\"\"\"\n" + text.slice(0, 6000) + "\n\"\"\"" : "Write a short market-structure brief about: " + focus + ". Say clearly that you have no live data and describe what to watch, not today's prices."}
+
+Answer in Persian with these sections:
+1) خلاصهٔ خبر (2-3 lines)
+2) جهت احتمالی بازار: صعودی / نزولی / خنثی, with one-line reason
+3) کوین‌های متأثر: list tickers and why each could move up or down
+4) ریسک‌ها و چیزی که باید زیر نظر داشت
+5) پست تلگرام: one short post each in فارسی, English and العربية (max 60 words each)
+Rules: no entry points, no targets, no stop-loss, no buy/sell advice. End with a one-line educational disclaimer.`;
+
+  $("btn-analyze").onclick = async () => {
+    const btn = $("btn-analyze"), out = $("result"), st = $("st");
+    const text = $("news-text").value.trim(), focus = $("focus").value;
+    btn.disabled = true; btn.textContent = "در حال تحلیل…"; $("result-box").hidden = false; out.textContent = ""; st.textContent = "صبر کنید…";
+    try {
+      let done = false;
+      if (window.SITE_MODE === "server") {
+        // 1) the crypto-business crew, if it is installed next to the site
+        try {
+          const r = await fetch(window.API_BASE + "/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, focus }) });
+          const d = await r.json();
+          if (d.ok) { out.textContent = typeof d.result === "string" ? d.result : JSON.stringify(d.result, null, 2); done = true; st.textContent = "تحلیل با crypto-business"; }
+        } catch (e) {}
+      }
+      // 2) the site's AI (Groq on the server, Claude on the preview)
+      if (!done) {
+        const t = await AI.ask(prompt(text, focus), { onText: ({ text }) => { out.textContent = text; } });
+        out.textContent = t; st.textContent = "قبل از انتشار بخوانید و تأیید کنید.";
+      }
+    } catch (e) { st.textContent = AI.errorText(e); }
+    btn.disabled = false; btn.textContent = "شروع تحلیل";
+  };
+  $("copy").onclick = async () => { try { await navigator.clipboard.writeText($("result").textContent); $("st").textContent = "کپی شد"; } catch (e) { const r = document.createRange(); r.selectNodeContents($("result")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $("st").textContent = "متن انتخاب شد؛ Ctrl+C بزنید"; } };
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,555 @@
+{
+ "updated": "2026-10-24",
+ "updated_fa": "۲ آبان ۱۴۰۵",
+ "market": [
+  {
+   "c": "BTC",
+   "p": "$81,500"
+  },
+  {
+   "c": "ETH",
+   "p": "$2,400"
+  },
+  {
+   "c": "BNB",
+   "p": "$745"
+  }
+ ],
+ "market_date": "23 Oct",
+ "stations": [
+  {
+   "id": "nyc",
+   "fa": "نیویورک",
+   "en": "New York",
+   "country": "آمریکا · وال‌استریت",
+   "lat": 40.71,
+   "lon": -74,
+   "freq": "81.5",
+   "news": [
+    {
+     "d": "22 Oct",
+     "t": "خروج ۶۳۵ میلیون دلاری از ETFهای بیت‌کوین",
+     "b": "ETFهای اسپات بیت‌کوین آمریکا روز پنجشنبه ۶۳۵٫۶ میلیون دلار خروج خالص داشتند؛ بیشترین خروج روزانه از ژوئن. سهم بلک‌راک (IBIT) منفی ۲۵۴ و فیدلیتی منفی ۲۱۷ میلیون دلار بود. ETFهای اتریوم هم ۱۱۰ میلیون دلار خروج داشتند. جمع هفته هنوز مثبت است.",
+     "en": "US spot Bitcoin ETFs saw 635.6 million dollars of net outflows on Thursday, the largest daily outflow since June. BlackRock's IBIT lost 254 million and Fidelity's fund 217 million. Ether ETFs lost 110 million. The weekly total is still positive.",
+     "source": {
+      "name": "The Block",
+      "url": "https://www.theblock.co/news/markets/2026-10-23-bitcoin-etfs-swing-back-to-net-outflows-erase-previous-day-inflows-426483"
+     }
+    },
+    {
+     "d": "22 Oct",
+     "t": "ریزش نزدک و ۴۴۰ میلیون دلار لیکوئید",
+     "b": "نزدک ۲٫۶٪ افت کرد، بدترین روزش از ژوئن، به‌خاطر گزارش‌های ضعیف شرکت‌های فناوری و نگرانی از هزینه‌های هوش مصنوعی. حدود ۴۴۰ میلیون دلار موقعیت اهرمی کریپتو لیکوئید شد که ۳۹۷ میلیون آن خرید (لانگ) بود. بیت‌کوین به حدود ۸۱٬۵۰۰ دلار رسید.",
+     "en": "The Nasdaq fell 2.6 percent, its worst day since June, on weak tech earnings and AI spending worries. About 440 million dollars of leveraged crypto positions were liquidated, 397 million of them longs. Bitcoin slipped to about 81,500 dollars.",
+     "source": {
+      "name": "The Block",
+      "url": "https://www.theblock.co/news/markets/2026-10-23-bitcoin-etfs-swing-back-to-net-outflows-erase-previous-day-inflows-426483"
+     }
+    },
+    {
+     "d": "23 Oct",
+     "t": "بازار آپشن: ترس از سقوط کمتر شده",
+     "b": "در داده‌های آپشن Derive، احتمال ضمنی عبور بیت‌کوین از ۱۰۰ هزار دلار تا کریسمس از ۹٫۷٪ به ۱۲٪ رسید و احتمال افت زیر ۷۰ هزار دلار از ۱۵٫۶٪ به ۱۱٪ کم شد.",
+     "en": "In Derive options data, the implied chance of Bitcoin above 100 thousand dollars by Christmas rose from 9.7 to 12 percent, while the chance of a drop below 70 thousand fell from 15.6 to 11 percent.",
+     "source": {
+      "name": "The Block",
+      "url": "https://www.theblock.co/news/markets/2026-10-23-bitcoin-etfs-swing-back-to-net-outflows-erase-previous-day-inflows-426483"
+     }
+    }
+   ],
+   "notes": [
+    {
+     "c": [
+      "BTC"
+     ],
+     "dir": "down",
+     "n": "خروج سنگین از ETFها یعنی تقاضای نهادی ضعیف‌تر شده؛ فشار کوتاه‌مدت روی قیمت.",
+     "w": "ETFها بزرگ‌ترین منبع خرید نهادی هستند."
+    },
+    {
+     "c": [
+      "BTC",
+      "ETH"
+     ],
+     "dir": "down",
+     "n": "همبستگی با نزدک بالاست؛ تا وقتی سهام فناوری زیر فشار است، کریپتو هم آسیب‌پذیر است.",
+     "w": "لیکوئید شدن لانگ‌ها ریزش را تشدید کرد."
+    },
+    {
+     "c": [
+      "BTC"
+     ],
+     "dir": "mixed",
+     "n": "بازار آپشن کمتر برای سقوط پول می‌دهد و بیشتر روی رشد تا آخر سال؛ یعنی معامله‌گران بزرگ هنوز بدبین نیستند.",
+     "w": "نشانهٔ احساسات، نه تضمین جهت."
+    }
+   ]
+  },
+  {
+   "id": "dc",
+   "fa": "واشنگتن",
+   "en": "Washington",
+   "country": "آمریکا · فدرال رزرو و SEC",
+   "lat": 38.9,
+   "lon": -77.04,
+   "freq": "94.2",
+   "news": [
+    {
+     "d": "27–28 Oct",
+     "t": "جلسهٔ فدرال رزرو هفتهٔ آینده",
+     "b": "فدرال رزرو ۲۷ و ۲۸ اکتبر جلسه دارد. نفت برنت به بالاترین سطح از اوایل ماه مه رسیده که چشم‌انداز تورم را پیچیده‌تر می‌کند.",
+     "en": "The Federal Reserve meets on October 27 and 28. Brent crude hit its highest level since early May, which complicates the inflation outlook.",
+     "source": {
+      "name": "CoinDesk",
+      "url": "https://www.coindesk.com/markets/2026/10/23/live-updates-bitcoin-holds-above-usd81-000-as-the-ai-rout-fades-and-oil-climbs"
+     }
+    },
+    {
+     "d": "2 Oct",
+     "t": "SEC راه ETFهای ۳ برابر اهرمی کریپتو را باز کرد",
+     "b": "SEC قانون بورس Cboe را تأیید کرد که سقف اهرم ۲ برابر را برمی‌دارد. Volatility Shares مجوز فهرست کردن ETF سه‌برابری بیت‌کوین (BITH) و اتر (ETHK) را گرفت. هنوز فرم S-1 لازم است و تاریخ شروع معاملات اعلام نشده.",
+     "en": "The SEC approved a Cboe rule change that lifts the 2x leverage cap. Volatility Shares can list 3x Bitcoin and 3x Ether products, but a separate S-1 must take effect first and no launch date is set.",
+     "source": {
+      "name": "Yahoo Finance",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/sec-just-broke-2x-ceiling-104256696.html"
+     }
+    },
+    {
+     "d": "3 Nov",
+     "t": "انتخابات میان‌دوره‌ای آمریکا",
+     "b": "انتخابات میان‌دوره‌ای آمریکا ۳ نوامبر برگزار می‌شود. تحلیل‌گران سطح ۷۰ هزار دلار را حمایت مهم بیت‌کوین در آستانهٔ انتخابات می‌دانند.",
+     "en": "US midterm elections are on November 3. Analysts watch 70 thousand dollars as a key downside level for Bitcoin ahead of the vote.",
+     "source": {
+      "name": "Crypto News",
+      "url": "https://cryptonews.net/news/bitcoin/33639631/"
+     }
+    }
+   ],
+   "notes": [
+    {
+     "c": [
+      "BTC",
+      "ETH"
+     ],
+     "dir": "mixed",
+     "n": "تصمیم فدرال رزرو بزرگ‌ترین رویداد هفته است؛ لحن سخت‌گیرانه فشار می‌آورد، لحن نرم کمک می‌کند.",
+     "w": "قیمت نفت بالا جای کاهش نرخ بهره را تنگ‌تر می‌کند."
+    },
+    {
+     "c": [
+      "BTC",
+      "ETH"
+     ],
+     "dir": "mixed",
+     "n": "ETFهای ۳ برابری بعد از شروع معاملات اهرم بازار را بالا می‌برند؛ نوسان در هر دو جهت بیشتر می‌شود.",
+     "w": "تأثیر فعلاً تا ثبت S-1 به تأخیر افتاده."
+    },
+    {
+     "c": [
+      "BTC"
+     ],
+     "dir": "mixed",
+     "n": "انتخابات ۳ نوامبر می‌تواند سیاست‌های کریپتویی کنگره را عوض کند؛ نوسان اطراف این تاریخ محتمل است.",
+     "w": ""
+    }
+   ]
+  },
+  {
+   "id": "hk",
+   "fa": "هنگ‌کنگ",
+   "en": "Hong Kong",
+   "country": "چین · هنگ‌کنگ",
+   "lat": 22.32,
+   "lon": 114.17,
+   "freq": "88.8",
+   "news": [
+    {
+     "d": "23 Oct",
+     "t": "HSBC اولین استیبل‌کوینش را به ۳ میلیون کاربر داد",
+     "b": "HSBC اولین استیبل‌کوین خود را برای بیش از ۳ میلیون کاربر اپلیکیشن فعال کرد.",
+     "en": "HSBC rolled out its first stablecoin to more than three million app users.",
+     "source": {
+      "name": "CoinDesk",
+      "url": "https://www.coindesk.com/markets/2026/10/23/live-updates-bitcoin-holds-above-usd81-000-as-the-ai-rout-fades-and-oil-climbs"
+     }
+    },
+    {
+     "d": "30 Sep",
+     "t": "RedCoin: استیبل‌کوین دلار هنگ‌کنگ",
+     "b": "این توکن «HSBC RedCoin» نام دارد، ۱ به ۱ به دلار هنگ‌کنگ متصل است و از طریق PayMe و اپ HSBC برای پرداخت فرد به فرد و فروشگاهی عرضه می‌شود. HSBC یکی از فقط دو دارندهٔ مجوز صدور استیبل‌کوین از HKMA است.",
+     "en": "The token is called HSBC RedCoin, pegged one to one to the Hong Kong dollar and offered through PayMe and the HSBC app for person-to-person and merchant payments. HSBC holds one of only two stablecoin issuer licences from the HKMA.",
+     "source": {
+      "name": "CoinGape",
+      "url": "https://coingape.com/hsbc-names-hong-kong-dollar-stablecoin-redcoin-ahead-of-h2-2026-launch/"
+     }
+    }
+   ],
+   "notes": [
+    {
+     "c": [
+      "USDT",
+      "USDC"
+     ],
+     "dir": "mixed",
+     "n": "ورود بانک‌های بزرگ به استیبل‌کوین رقابت برای تتر و USDC در آسیا را بیشتر می‌کند.",
+     "w": "روی قیمت بیت‌کوین اثر مستقیم ندارد."
+    },
+    {
+     "c": [
+      "BTC"
+     ],
+     "dir": "up",
+     "n": "پذیرش بانکی روایت «کریپتو وارد اقتصاد واقعی شده» را تقویت می‌کند؛ اثرش بلندمدت است.",
+     "w": ""
+    }
+   ]
+  },
+  {
+   "id": "seoul",
+   "fa": "سئول",
+   "en": "Seoul",
+   "country": "کرهٔ جنوبی",
+   "lat": 37.57,
+   "lon": 126.98,
+   "freq": "97.1",
+   "news": [
+    {
+     "d": "23 Oct",
+     "t": "کره استیبل‌کوین‌ها را ابزار پرداخت تعریف می‌کند",
+     "b": "دولت و بانک مرکزی کره قصد دارند امسال قانون معاملات ارزی را اصلاح کنند تا استیبل‌کوین‌ها به‌عنوان ابزار پرداخت تنظیم شوند، همراه با چارچوب نظارت بر دارایی‌های مجازی.",
+     "en": "South Korea's government and central bank plan to amend the foreign exchange law this year to regulate stablecoins as payment instruments, with a monitoring framework for virtual assets.",
+     "source": {
+      "name": "The Block",
+      "url": "https://www.theblock.co/news/regulation/2026-10-23-south-korea-stablecoins-payment-instruments-424028"
+     }
+    },
+    {
+     "d": "22 Oct",
+     "t": "قانون پایهٔ دارایی دیجیتال نزدیک نهایی شدن",
+     "b": "رئیس کمیسیون خدمات مالی گفت بحث‌ها روی این قانون نزدیک به پایان است. این قانون صدور مجوز صرافی‌ها و قوانین صدور استیبل‌کوین را مشخص می‌کند.",
+     "en": "The financial regulator's chairman said talks on the Digital Asset Basic Act are nearly complete. It would license exchanges and set stablecoin issuance rules.",
+     "source": {
+      "name": "The Block",
+      "url": "https://www.theblock.co/news/regulation/2026-10-23-south-korea-stablecoins-payment-instruments-424028"
+     }
+    }
+   ],
+   "notes": [
+    {
+     "c": [
+      "ALTS"
+     ],
+     "dir": "mixed",
+     "n": "کره از پرحجم‌ترین بازارهای آلت‌کوین است؛ وضوح قانونی در بلندمدت مثبت است ولی قوانین ارزی سخت‌گیرانه جریان سرمایه را محدود می‌کند.",
+     "w": ""
+    },
+    {
+     "c": [
+      "USDT"
+     ],
+     "dir": "mixed",
+     "n": "تعریف استیبل‌کوین به‌عنوان ابزار پرداخت یعنی نظارت بیشتر روی ورود و خروج دلار دیجیتال.",
+     "w": ""
+    }
+   ]
+  },
+  {
+   "id": "tokyo",
+   "fa": "توکیو",
+   "en": "Tokyo",
+   "country": "ژاپن",
+   "lat": 35.68,
+   "lon": 139.69,
+   "freq": "90.9",
+   "news": [
+    {
+     "d": "15 Jul",
+     "t": "ژاپن مالیات کریپتو را به ۲۰٪ کاهش می‌دهد",
+     "b": "پارلمان ژاپن بیت‌کوین و حدود ۱۰۵ دارایی دیگر را زیر قانون اوراق بهادار برد. مالیات ثابت حدود ۲۰٪ (به‌جای تا ۵۵٪) از ۱ ژانویه ۲۰۲۸ هدف‌گذاری شده و ETFهای اسپات زودتر از ۲۰۲۷ نمی‌آیند.",
+     "en": "Japan's parliament moved Bitcoin and about 105 other assets under securities law. A flat tax of about 20 percent, down from up to 55, is targeted from January 2028, and spot ETFs are expected no earlier than 2027.",
+     "source": {
+      "name": "TFTC",
+      "url": "https://www.tftc.io/japan-fiea-amendment-crypto-financial-instrument-tax-etf-2026"
+     }
+    }
+   ],
+   "notes": [
+    {
+     "c": [
+      "BTC"
+     ],
+     "dir": "up",
+     "n": "کاهش مالیات و مسیر ETF در بلندمدت تقاضای ژاپنی را زیاد می‌کند.",
+     "w": "تاریخ‌ها دورند؛ اثر کوتاه‌مدت ندارد."
+    }
+   ]
+  },
+  {
+   "id": "mumbai",
+   "fa": "بمبئی",
+   "en": "Mumbai",
+   "country": "هند",
+   "lat": 19.08,
+   "lon": 72.88,
+   "freq": "92.7",
+   "news": [
+    {
+     "d": "23 Oct",
+     "t": "بزرگ‌ترین صرافی هند هک را تکذیب کرد",
+     "b": "بعد از اینکه کارآگاهان بلاک‌چین ۱۶ میلیون دلار خروجی مشکوک را گزارش کردند، بزرگ‌ترین صرافی هند هک شدن را تکذیب کرد.",
+     "en": "India's largest exchange denied a hack after blockchain sleuths flagged 16 million dollars of suspicious outflows.",
+     "source": {
+      "name": "CoinDesk",
+      "url": "https://www.coindesk.com/markets/2026/10/23/live-updates-bitcoin-holds-above-usd81-000-as-the-ai-rout-fades-and-oil-climbs"
+     }
+    }
+   ],
+   "notes": [
+    {
+     "c": [
+      "USDT"
+     ],
+     "dir": "down",
+     "n": "اگر هک تأیید شود، اعتماد کاربران هندی آسیب می‌بیند و برداشت‌ها زیاد می‌شود.",
+     "w": "اثر جهانی محدود است."
+    }
+   ]
+  },
+  {
+   "id": "dubai",
+   "fa": "دبی",
+   "en": "Dubai",
+   "country": "امارات",
+   "lat": 25.2,
+   "lon": 55.27,
+   "freq": "99.3",
+   "news": [
+    {
+     "d": "22 Oct",
+     "t": "رابین‌هود مجوز دبی را گرفت",
+     "b": "رابین‌هود از نهاد ناظر مالی دبی (DFSA) مجوز گرفت و دفتر منطقه‌ای‌اش را در DIFC راه می‌اندازد. عرضهٔ کریپتو، سهام، ETF و آپشن در خاورمیانه برای ۲۰۲۷ برنامه‌ریزی شده.",
+     "en": "Robinhood received authorization from Dubai's financial regulator and is opening a regional headquarters in the DIFC. Crypto, stocks, ETFs and options are planned for the Middle East in 2027.",
+     "source": {
+      "name": "FinanceFeeds",
+      "url": "https://financefeeds.com/robinhood-secures-dubai-regulatory-approval-for-crypto-and-stock-trading-targets-2027-middle-east-launch/"
+     }
+    },
+    {
+     "d": "30 Jun",
+     "t": "مهاجرت شرکت‌های کریپتوی اروپایی به دبی",
+     "b": "با اجرای کامل قانون MiCA در اروپا از ۱ ژوئیه، درخواست شرکت‌های کریپتوی اروپایی برای انتقال به دبی و امارات به‌شدت بالا رفت.",
+     "en": "With the EU's MiCA rules fully in force from July 1, inquiries from European crypto firms about moving to Dubai and the UAE jumped.",
+     "source": {
+      "name": "Yahoo Finance",
+      "url": "https://finance.yahoo.com/markets/crypto/articles/dubai-braces-crypto-influx-european-135100915.html"
+     }
+    }
+   ],
+   "notes": [
+    {
+     "c": [
+      "BTC",
+      "ETH"
+     ],
+     "dir": "up",
+     "n": "ورود بروکرهای بزرگ آمریکایی، خاورمیانه را به قطب سرمایهٔ کریپتو تبدیل می‌کند؛ اثرش تدریجی است.",
+     "w": ""
+    }
+   ]
+  },
+  {
+   "id": "paris",
+   "fa": "پاریس",
+   "en": "Paris",
+   "country": "اتحادیهٔ اروپا · فرانسه",
+   "lat": 48.86,
+   "lon": 2.35,
+   "freq": "101.4",
+   "news": [
+    {
+     "d": "14 Oct",
+     "t": "USDC در اروپا «توکن مهم» شد",
+     "b": "مرجع بانکی اروپا (EBA) استیبل‌کوین USDC را طبق MiCA «توکن الکترونیکی مهم» اعلام کرد. از این پس EBA و ناظر فرانسه (ACPR) با هم بر آن نظارت می‌کنند. بانک مرکزی اروپا هنوز روی یورو دیجیتال کار می‌کند و هدفش ۲۰۲۹ است.",
+     "en": "The European Banking Authority designated USDC a significant e-money token under MiCA, to be supervised jointly with France's ACPR. The ECB is still working on a digital euro targeted for 2029.",
+     "source": {
+      "name": "Bloomingbit",
+      "url": "https://en.bloomingbit.io/feed/news/122236"
+     }
+    }
+   ],
+   "notes": [
+    {
+     "c": [
+      "USDC"
+     ],
+     "dir": "up",
+     "n": "نظارت مستقیم اروپا مشروعیت USDC را برای بانک‌ها و شرکت‌ها بالا می‌برد؛ سهمش از تتر در اروپا می‌تواند بیشتر شود.",
+     "w": "روی قیمت BTC اثر مستقیم ندارد."
+    }
+   ]
+  },
+  {
+   "id": "zug",
+   "fa": "تسوگ",
+   "en": "Zug",
+   "country": "سوئیس · بنیاد اتریوم",
+   "lat": 47.17,
+   "lon": 8.52,
+   "freq": "89.6",
+   "news": [
+    {
+     "d": "23 Oct",
+     "t": "تست Glamsterdam اتریوم عقب افتاد",
+     "b": "اتریوم تست ارتقای Glamsterdam را به‌خاطر ریسک برای قراردادهای موجود به تعویق انداخت. هدف قبلی، اجرای شبکهٔ اصلی در سه‌ماههٔ چهارم ۲۰۲۶ بود. اتر زیر ۲٬۴۰۰ دلار معامله می‌شود.",
+     "en": "Ethereum delayed its Glamsterdam test over risks to existing contracts. The earlier mainnet target was the fourth quarter of 2026. Ether trades just under 2,400 dollars.",
+     "source": {
+      "name": "CoinDesk",
+      "url": "https://www.coindesk.com/markets/2026/10/23/live-updates-bitcoin-holds-above-usd81-000-as-the-ai-rout-fades-and-oil-climbs"
+     }
+    }
+   ],
+   "notes": [
+    {
+     "c": [
+      "ETH"
+     ],
+     "dir": "down",
+     "n": "تأخیر یعنی احتمالاً ارتقا به ۲۰۲۷ می‌رود؛ کاتالیزور کوتاه‌مدت اتر ضعیف‌تر شد.",
+     "w": ""
+    },
+    {
+     "c": [
+      "ETH"
+     ],
+     "dir": "up",
+     "n": "از طرف دیگر، تست دقیق‌تر ریسک باگ روی شبکهٔ اصلی را کم می‌کند.",
+     "w": "اثر بلندمدت."
+    }
+   ]
+  },
+  {
+   "id": "saopaulo",
+   "fa": "سائوپائولو",
+   "en": "São Paulo",
+   "country": "برزیل",
+   "lat": -23.55,
+   "lon": -46.63,
+   "freq": "93.5",
+   "news": [
+    {
+     "d": "22 Oct",
+     "t": "پلیس برزیل ۱۰۰ میلیون رئال را مسدود کرد",
+     "b": "پلیس فدرال برزیل در عملیات «سائو سیلوستره» ۱۲ حکم بازرسی در ۵ ایالت علیه یک طرح هرمی کریپتو و «ربات معامله‌گر» اجرا کرد. دادگاه تا ۱۰۰ میلیون رئال (حدود ۱۹٫۸ میلیون دلار) را مسدود کرد. بیش از ۱۰ هزار نفر بین ۲۰۱۸ تا ۲۰۲۰ ضرر کرده‌اند.",
+     "en": "Brazil's Federal Police served 12 warrants in five states against an alleged crypto and trading-robot pyramid scheme. A court froze up to 100 million reais, about 19.8 million dollars. More than 10 thousand people lost money between 2018 and 2020.",
+     "source": {
+      "name": "The Rio Times",
+      "url": "https://www.riotimesonline.com/brazil-police-freeze-us-19-8-million-crypto-pyramid-probe-2026/"
+     }
+    }
+   ],
+   "notes": [
+    {
+     "c": [
+      "—"
+     ],
+     "dir": "mixed",
+     "n": "اثری روی قیمت بازار ندارد؛ هشداری است دربارهٔ «ربات‌هایی» که سود تضمینی وعده می‌دهند.",
+     "w": "موضوع خوبی برای پست آموزشی کانال."
+    }
+   ]
+  },
+  {
+   "id": "sansalvador",
+   "fa": "سان‌سالوادور",
+   "en": "San Salvador",
+   "country": "السالوادور",
+   "lat": 13.69,
+   "lon": -89.22,
+   "freq": "87.9",
+   "news": [
+    {
+     "d": "1 Oct",
+     "t": "صندوق بین‌المللی پول با وجود تخلف بیت‌کوینی پول داد",
+     "b": "صندوق بین‌المللی پول پرداخت به السالوادور را تأیید کرد، بعد از اینکه برای نقض تعهدات مربوط به بیت‌کوین معافیت داد.",
+     "en": "The IMF approved funds for El Salvador after granting a waiver for its breach of Bitcoin-related commitments.",
+     "source": {
+      "name": "Bloomberg",
+      "url": "https://www.bloomberg.com/news/articles/2026-10-01/imf-approves-el-salvador-funds-after-waiver-for-bitcoin-breach"
+     }
+    }
+   ],
+   "notes": [
+    {
+     "c": [
+      "BTC"
+     ],
+     "dir": "mixed",
+     "n": "خبر نمادین است؛ نشان می‌دهد سیاست بیت‌کوینی السالوادور ادامه دارد، ولی حجمش برای حرکت بازار کوچک است.",
+     "w": ""
+    }
+   ]
+  },
+  {
+   "id": "lagos",
+   "fa": "لاگوس",
+   "en": "Lagos",
+   "country": "نیجریه",
+   "lat": 6.52,
+   "lon": 3.38,
+   "freq": "95.1",
+   "news": [
+    {
+     "d": "2025",
+     "t": "نیجریه دارایی دیجیتال را اوراق بهادار حساب می‌کند",
+     "b": "قانون سرمایه‌گذاری ۲۰۲۵ نیجریه دارایی‌های دیجیتال را زیر نظارت کمیسیون بورس قرار داد. بانک مرکزی هم محدودیت همکاری بانک‌ها با ارائه‌دهندگان مجاز را کم کرد. (خبر پیش‌زمینه)",
+     "en": "Nigeria's 2025 investments law placed digital assets under the securities regulator, and the central bank eased limits on banks working with licensed providers. This is background news.",
+     "source": {
+      "name": "Ripple Insights",
+      "url": "https://ripple.com/insights/crypto-regulation-in-africa/"
+     }
+    }
+   ],
+   "notes": [
+    {
+     "c": [
+      "USDT"
+     ],
+     "dir": "up",
+     "n": "نیجریه از بزرگ‌ترین بازارهای استیبل‌کوین است؛ دسترسی بانکی بهتر استفاده را بیشتر می‌کند.",
+     "w": "اثر تدریجی."
+    }
+   ]
+  },
+  {
+   "id": "nairobi",
+   "fa": "نایروبی",
+   "en": "Nairobi",
+   "country": "کنیا",
+   "lat": -1.29,
+   "lon": 36.82,
+   "freq": "91.3",
+   "news": [
+    {
+     "d": "Oct 2025",
+     "t": "قانون ارائه‌دهندگان دارایی مجازی کنیا",
+     "b": "قانون ارائه‌دهندگان دارایی مجازی کنیا اکتبر ۲۰۲۵ امضا شد و نظارت را به بانک مرکزی و سازمان بازار سرمایه داد. رایزنی ملی برای آیین‌نامه‌ها در جریان است. (خبر پیش‌زمینه)",
+     "en": "Kenya signed its virtual asset service providers law in October 2025, placing oversight with the central bank and capital markets authority. A national consultation on the regulations is under way. This is background news.",
+     "source": {
+      "name": "Ripple Insights",
+      "url": "https://ripple.com/insights/crypto-regulation-in-africa/"
+     }
+    }
+   ],
+   "notes": [
+    {
+     "c": [
+      "—"
+     ],
+     "dir": "mixed",
+     "n": "وضوح قانونی برای صرافی‌های آفریقایی خوب است؛ روی قیمت جهانی اثر قابل‌توجهی ندارد.",
+     "w": ""
+    }
+   ]
+  }
+ ]
+}

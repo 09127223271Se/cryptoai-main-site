@@ -1,0 +1,54 @@
+/* Radio globe page: the globe is the stage with a tuning ring at its centre; the tuned station's broadcast sheet sits beside it (below on phones). */
+.ticker{display:flex;flex-wrap:wrap;gap:6px}
+.dial{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.dial button{flex:none;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 12px;font-size:13px;white-space:nowrap}
+.dial button[aria-current="true"]{border-color:var(--signal);color:var(--signal)}
+.dial .d{display:inline-block;width:7px;height:7px;border-radius:50%;margin-inline-end:6px;vertical-align:middle}
+
+.stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:16px;align-items:start}
+@media (max-width:960px){.stage{grid-template-columns:minmax(0,1fr)}}
+.globe{position:relative;min-width:0;border-radius:18px;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#0d1730 0%,var(--bg) 70%);border:1px solid var(--line);aspect-ratio:1/1;max-height:calc(100vh - 170px);width:100%;touch-action:none;user-select:none}
+@media (max-width:960px){.globe{aspect-ratio:auto;height:min(68vh,540px);max-height:none}}
+.globe canvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab}
+.globe canvas.drag{cursor:grabbing}
+.ring{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border:2px solid var(--signal);border-radius:50%;pointer-events:none;box-shadow:0 0 0 6px var(--signal-soft)}
+.hint{position:absolute;inset-inline-start:14px;bottom:12px;max-width:calc(100% - 80px);font-size:12px;color:var(--muted);background:rgba(5,9,19,.72);padding:3px 10px;border-radius:8px;pointer-events:none}
+.mapnote{position:absolute;inset-inline-end:14px;top:12px;font-size:12px;color:var(--muted);background:rgba(5,9,19,.72);padding:3px 10px;border-radius:8px}
+.zoom{position:absolute;inset-inline-end:12px;bottom:12px;display:grid;gap:6px}
+.zoom button{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:18px;line-height:1}
+
+.sheet{display:grid}
+.tuner{padding:16px 18px 12px;border-bottom:1px solid var(--line);display:grid;gap:8px}
+.tuner .freq{font-size:12px;color:var(--signal);letter-spacing:.08em}
+.tuner h2{font-size:24px;line-height:1.25;font-weight:800}
+.tuner .where{color:var(--muted);font-size:13px}
+.player{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.play{width:52px;height:52px;border-radius:50%;border:0;background:var(--signal);color:#1a1204;display:grid;place-items:center;flex:none}
+.play svg{width:22px;height:22px}
+.eq{display:flex;gap:3px;align-items:end;height:22px}
+.eq i{width:4px;background:var(--signal);border-radius:2px;height:4px;opacity:.5}
+.eq.on i{animation:eq 900ms ease-in-out infinite;opacity:1}
+.eq.on i:nth-child(2){animation-delay:-300ms}.eq.on i:nth-child(3){animation-delay:-600ms}.eq.on i:nth-child(4){animation-delay:-150ms}.eq.on i:nth-child(5){animation-delay:-450ms}
+@keyframes eq{0%,100%{height:4px}50%{height:22px}}
+.voice{font-size:12px;color:var(--muted);flex:1;min-width:150px}
+.news{padding:12px 18px;display:grid;gap:10px}
+.news h3,.notes h3{font-size:13px;color:var(--muted);font-weight:500}
+.item{border-inline-start:3px solid var(--line);padding-inline-start:12px;display:grid;gap:2px;transition:border-color .2s}
+.item.live{border-inline-start-color:var(--signal)}
+.item b{font-weight:700;line-height:1.5}
+.item p{color:var(--muted);font-size:13.5px}
+.item .meta{font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.item .meta a{color:var(--signal);text-decoration:none}
+.item .meta a:hover{text-decoration:underline}
+.notes{padding:12px 18px 18px;border-top:1px solid var(--line);display:grid;gap:10px}
+.notes .hd{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.note{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.arrow{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-family:var(--f-mono);font-weight:700;font-size:16px}
+.arrow.up{background:rgba(51,211,154,.16);color:var(--up)}
+.arrow.down{background:rgba(255,106,95,.16);color:var(--down)}
+.arrow.mixed{background:rgba(159,178,216,.16);color:var(--mixed)}
+.note .coins{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:2px}
+.coin{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);border-radius:6px;padding:0 6px}
+.note p{font-size:13.5px}
+.note small{color:var(--muted);font-size:12px}
+@media (prefers-reduced-motion: reduce){.eq.on i{height:14px}}

@@ -1,0 +1,48 @@
+{% if not fragment %}<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+{% endif %}  <title>{% block title %}CryptoAI{% endblock %}</title>
+  {% if fragment %}<meta name="claude:viewport-fit-sides" content="cover">{% endif %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&family=Lalezar&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="{{ asset('css/main.css') }}">
+  {% block head %}{% endblock %}
+  <script>
+    /* "server": Flask backend answers /api/*.  "static": hosted preview, AI falls back to Claude. */
+    window.SITE_MODE = "{{ mode }}";
+    window.API_BASE = "{{ api_base }}";
+    window.ASSET_BASE = "{{ asset('') }}";
+  </script>
+  <script src="{{ asset('js/ai.js') }}"></script>
+{% if not fragment %}</head>
+<body>{% endif %}
+<div dir="rtl" lang="fa">
+  <nav class="nav" aria-label="منوی اصلی">
+    <a class="nav-brand" dir="ltr" href="{{ link('home') }}">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2.5 12h19M12 2.5c3 3.2 3 15.8 0 19M12 2.5c-3 3.2-3 15.8 0 19" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+      Crypto<b>AI</b>
+    </a>
+    <div class="nav-links">
+      <a href="{{ link('home') }}" {% if page=='home' %}aria-current="page"{% endif %}>کره رادیو</a>
+      <a href="{{ link('trader') }}" {% if page=='trader' %}aria-current="page"{% endif %}>تریدر</a>
+      <a href="{{ link('analysis') }}" {% if page=='analysis' %}aria-current="page"{% endif %}>تحلیل کریپتو</a>
+      <a href="{{ link('sales') }}" {% if page=='sales' %}aria-current="page"{% endif %}>پیدا کردن مشتری</a>
+    </div>
+    <div class="nav-status" id="nav-status"><span class="dot"></span><span id="nav-status-t">در حال بررسی…</span></div>
+  </nav>
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+  <script>
+    AI.status().then(s => {
+      const el = document.getElementById("nav-status");
+      el.classList.toggle("on", s.ok);
+      document.getElementById("nav-status-t").textContent = s.label;
+    });
+  </script>
+  {% block scripts %}{% endblock %}
+</div>
+{% if not fragment %}</body>
+</html>{% endif %}

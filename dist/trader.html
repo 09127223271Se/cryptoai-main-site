@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CryptoAI · تریدر</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&family=Lalezar&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="static/css/main.css">
+  <link rel="stylesheet" href="static/css/trader.css">
+  <script>
+    /* "server": Flask backend answers /api/*.  "static": hosted preview, AI falls back to Claude. */
+    window.SITE_MODE = "static";
+    window.API_BASE = "";
+    window.ASSET_BASE = "static/";
+  </script>
+  <script src="static/js/ai.js"></script>
+</head>
+<body>
+<div dir="rtl" lang="fa">
+  <nav class="nav" aria-label="منوی اصلی">
+    <a class="nav-brand" dir="ltr" href="index.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2.5 12h19M12 2.5c3 3.2 3 15.8 0 19M12 2.5c-3 3.2-3 15.8 0 19" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+      Crypto<b>AI</b>
+    </a>
+    <div class="nav-links">
+      <a href="index.html" >کره رادیو</a>
+      <a href="trader.html" aria-current="page">تریدر</a>
+      <a href="analysis.html" >تحلیل کریپتو</a>
+      <a href="sales.html" >پیدا کردن مشتری</a>
+    </div>
+    <div class="nav-status" id="nav-status"><span class="dot"></span><span id="nav-status-t">در حال بررسی…</span></div>
+  </nav>
+  <main class="main">
+    
+<div class="wrap">
+  <div class="page-head">
+    <div>
+      <h1>تریدر <span>کریپتو</span></h1>
+      <p>اسکنر چارت، برگهٔ ستاپ و شبیه‌سازی ۱۰٬۰۰۰ مسیر قیمت. خروجی، تحلیل ساختار بازار است، نه سیگنال خرید یا فروش.</p>
+    </div>
+    <div class="row">
+      <span class="pill warn" id="data-pill">در حال بارگذاری داده…</span>
+      <span class="pill">تایم‌فریم <b class="num">1h</b></span>
+    </div>
+  </div>
+
+  <div class="desk">
+    <section class="panel" aria-labelledby="h-scan">
+      <div class="ph">
+        <h2 id="h-scan">اسکنر چارت</h2>
+        <div class="seg" role="group" aria-label="فیلتر">
+          <button id="f-all" aria-pressed="true" data-f="all">همه</button>
+          <button id="f-hit" aria-pressed="false" data-f="hit">با الگو</button>
+          <button id="f-up" aria-pressed="false" data-f="up">صعودی</button>
+          <button id="f-down" aria-pressed="false" data-f="down">نزولی</button>
+        </div>
+      </div>
+      <div class="scanbar"><span class="big" id="hits">0</span><span class="of" id="hits-of"></span></div>
+      <div class="grid" id="grid"></div>
+      <div class="upload">
+        <label class="btn" for="csv">بارگذاری CSV<input type="file" id="csv" accept=".csv,text/csv"></label>
+        <span>ستون‌ها: time, open, high, low, close, volume (خروجی TradingView یا Binance)</span>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-setup">
+      <div class="ph"><h2 id="h-setup">برگهٔ ستاپ</h2><span class="sub">۹۶ کندل آخر + مخروط شبیه‌سازی</span></div>
+      <div class="sheet-head">
+        <div class="name" id="s-name">–</div>
+        <span class="bias flat" id="s-bias">–</span>
+      </div>
+      <div class="cards">
+        <div class="card"><div class="k">قیمت فعلی</div><div class="v num" id="c-price">–</div><div class="s" id="c-chg">–</div></div>
+        <div class="card"><div class="k">سقف رنج ۲۴ ساعته</div><div class="v num" id="c-res">–</div><div class="s" id="c-res-d">–</div></div>
+        <div class="card"><div class="k">کف رنج ۲۴ ساعته</div><div class="v num" id="c-sup">–</div><div class="s" id="c-sup-d">–</div></div>
+      </div>
+      <div class="chartbox"><canvas id="cv-main" aria-label="نمودار کندل با سطوح کلیدی و مخروط شبیه‌سازی"></canvas></div>
+      <div class="legend">
+        <span><i style="background:var(--down)"></i>سقف رنج</span>
+        <span><i style="background:var(--up)"></i>کف رنج</span>
+        <span><i style="background:var(--muted)"></i>EMA 50</span>
+        <span><i style="background:var(--fan);opacity:.6"></i>بازهٔ ۵۰٪ و ۹۰٪ شبیه‌سازی</span>
+      </div>
+      <div class="findings" id="findings"></div>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="h-sim">
+    <div class="ph">
+      <h2 id="h-sim">شبیه‌سازی مونت‌کارلو</h2>
+      <div class="row">
+        <div class="seg" role="group" aria-label="افق زمانی">
+          <button id="hz-24" aria-pressed="true" data-h="24">۲۴ ساعت</button>
+          <button id="hz-72" aria-pressed="false" data-h="72">۳ روز</button>
+        </div>
+        <button class="btn" id="rerun">اجرای دوباره</button>
+      </div>
+    </div>
+    <div class="sim-top">
+      <div class="counter"><span class="n" id="sim-n">0</span><span class="l" id="sim-l"></span></div>
+      <div class="row" id="sim-pcts"></div>
+    </div>
+    <div class="simgrid">
+      <div><canvas id="cv-hist" aria-label="توزیع قیمت پایانی"></canvas></div>
+      <div style="min-width:0;overflow-x:auto">
+        <table class="lv">
+          <thead><tr><th>سطح</th><th>قیمت</th><th>فاصله</th><th>احتمال لمس</th></tr></thead>
+          <tbody id="lv-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <p class="note">روش: بازنمونه‌گیری بلوکی از بازده‌های ساعتی ۷ روز اخیر همین کوین، با حذف میانگین بازده (بدون فرض جهت). شبیه‌سازی فقط می‌گوید با نوسان فعلی، قیمت در این افق معمولاً تا کجا می‌رود؛ پیش‌بینی جهت نیست.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="h-post">
+    <div class="ph"><h2 id="h-post">پست تلگرام برای تأیید</h2><span class="sub">بعد از تأیید شما در ربات منتشر می‌شود</span></div>
+    <div class="post">
+      <div style="display:grid;gap:10px;min-width:0">
+        <div class="tg" id="tg" dir="rtl"></div>
+        <div class="row">
+          <button class="btn primary" id="copy">کپی متن</button>
+          <button class="btn" id="send-tg" hidden>ارسال به ربات برای تأیید</button>
+          <span class="status" id="copy-s" role="status"></span>
+        </div>
+      </div>
+      <div class="aibox">
+        <h3>نوشتن با هوش مصنوعی</h3>
+        <p>همین داده‌ها را به هوش مصنوعی می‌دهد تا پست را به زبان انتخابی بنویسد، بدون نقطهٔ ورود و بدون سیگنال.</p>
+        <div class="row">
+          <select class="btn" id="lang" aria-label="زبان">
+            <option value="fa">فارسی</option><option value="en">English</option><option value="ar">العربية</option>
+          </select>
+          <button class="btn" id="ai-write" disabled>بنویس</button>
+          <button class="btn" id="ai-stop" hidden>توقف</button>
+        </div>
+        <div id="img-box" hidden style="display:grid;gap:10px">
+          <h3 style="margin-top:8px">تحلیل تصویر چارت</h3>
+          <p>اسکرین‌شات چارت واقعی (TradingView یا صرافی) را بفرستید تا الگوها و سطوح آن خوانده شود.</p>
+          <div class="row"><label class="btn" for="img">انتخاب تصویر<input type="file" id="img" accept="image/png,image/jpeg,image/webp"></label></div>
+        </div>
+        <span class="status" id="ai-s" role="status">در حال اتصال…</span>
+      </div>
+    </div>
+  </section>
+  <p class="foot">این ابزار آموزشی است. هیچ‌کدام از خروجی‌ها توصیهٔ مالی یا سیگنال معاملاتی نیست.</p>
+</div>
+
+  </main>
+  <script>
+    AI.status().then(s => {
+      const el = document.getElementById("nav-status");
+      el.classList.toggle("on", s.ok);
+      document.getElementById("nav-status-t").textContent = s.label;
+    });
+  </script>
+  <script src="static/js/trader.js"></script>
+</div>
+</body>
+</html>

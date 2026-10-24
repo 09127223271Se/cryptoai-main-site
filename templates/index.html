@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}CryptoAI · کره رادیو{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/radio.css') }}">{% endblock %}
+{% block content %}
+<div class="wrap">
+  <div class="page-head">
+    <div>
+      <h1>رادیو <span>کریپتو</span></h1>
+      <p id="updated">اخبار کریپتو از هر گوشهٔ دنیا</p>
+    </div>
+    <div class="ticker" id="ticker" aria-label="بازار"></div>
+  </div>
+
+  <div class="dial" id="dial" role="tablist" aria-label="ایستگاه‌ها"></div>
+
+  <div class="stage">
+    <div class="globe" id="globe">
+      <canvas id="cv" aria-label="کرهٔ زمین با ایستگاه‌های رادیو کریپتو؛ بکشید تا بچرخد"></canvas>
+      <div class="ring" aria-hidden="true"></div>
+      <span class="mapnote" id="mapnote" hidden>نقشهٔ قاره‌ها بارگذاری نشد؛ ایستگاه‌ها کار می‌کنند</span>
+      <span class="hint">بکشید تا بچرخد · ایستگاه را در دایره بگذارید یا رویش بزنید</span>
+      <div class="zoom"><button id="zin" aria-label="بزرگ‌نمایی">+</button><button id="zout" aria-label="کوچک‌نمایی">−</button></div>
+    </div>
+
+    <aside class="panel sheet" aria-live="polite">
+      <div class="tuner">
+        <span class="freq num" id="freq">CRYPTO FM</span>
+        <h2 id="st-name">–</h2>
+        <span class="where" id="st-where"></span>
+        <div class="player">
+          <button class="play" id="play" aria-label="پخش">
+            <svg viewBox="0 0 24 24" id="ic-play"><path fill="currentColor" d="M7 4.5v15l13-7.5z"/></svg>
+            <svg viewBox="0 0 24 24" id="ic-pause" hidden><path fill="currentColor" d="M6 4h4.5v16H6zM13.5 4H18v16h-4.5z"/></svg>
+          </button>
+          <div class="eq" id="eq"><i></i><i></i><i></i><i></i><i></i></div>
+          <span class="voice" id="voice">برای شنیدن خبرها پخش را بزنید</span>
+        </div>
+      </div>
+      <div class="news">
+        <h3>خبرهای این ایستگاه</h3>
+        <div id="news" style="display:grid;gap:10px"></div>
+      </div>
+      <div class="notes">
+        <div class="hd">
+          <h3>نکته‌های هوش مصنوعی: چه چیزی بازار را بالا یا پایین می‌برد</h3>
+          <button class="btn" id="reanalyze" hidden>تحلیل دوباره</button>
+        </div>
+        <div id="notes" style="display:grid;gap:8px"></div>
+        <span class="status" id="ai-s" role="status"></span>
+      </div>
+    </aside>
+  </div>
+  <p class="foot">خبرها از منابع ذکرشده در هر خبر جمع‌آوری شده‌اند. نکته‌ها تحلیل اثر خبر روی بازار هستند، نه سیگنال خرید یا فروش.</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>window.echarts={registerMap:function(n,j){if(n==="world")window.__worldGeo=j}};</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/world.js"></script>
+<script src="{{ asset('js/radio.js') }}"></script>
+{% endblock %}

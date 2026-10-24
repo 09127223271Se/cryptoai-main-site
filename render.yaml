@@ -1,0 +1,22 @@
+# Render Blueprint — creates ONE new web service for this project only.
+# It does not touch any other service, database or repo in the account.
+services:
+  - type: web
+    name: cryptoai-main-site
+    runtime: python
+    plan: free
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      # Secrets: Render asks for these in its dashboard. Never commit them.
+      - key: GROQ_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_ADMIN_CHAT
+        sync: false
