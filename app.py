@@ -36,7 +36,7 @@ app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax",
 if trader_engine.trader_bp is not None:
     app.register_blueprint(trader_engine.trader_bp)      # /api/trader/scan, /api/trader/setup/<coin>
 
-PAGES = {"home": "/", "trader": "/trader", "analysis": "/analysis", "sales": "/sales", "admin": "/admin"}
+PAGES = {"home": "/", "radio": "/radio", "trader": "/trader", "analysis": "/analysis", "sales": "/sales", "admin": "/admin"}
 
 
 # ---------- admin login (password lives only in Render: ADMIN_PASSWORD) ----------
@@ -57,10 +57,19 @@ def admin_required(api=False):
     return deco
 
 
+def channel_url() -> str:
+    """Public Telegram channel link for the 'join' buttons (PUBLIC_CHANNEL_URL, or derived from @channel)."""
+    url = os.environ.get("PUBLIC_CHANNEL_URL", "").strip()
+    if url:
+        return url
+    ch = os.environ.get("TELEGRAM_CHANNEL_ID", "").strip()
+    return f"https://t.me/{ch[1:]}" if ch.startswith("@") else ""
+
+
 def page(name: str, template: str, **extra):
     """Render a page in server mode (links to Flask routes, AI through /api/ai)."""
     return render_template(
-        template, page=name, mode="server", api_base="", is_admin=is_admin(),
+        template, page=name, mode="server", api_base="", is_admin=is_admin(), channel=channel_url(),
         asset=lambda p: url_for("static", filename=p) if p else "/static/",
         link=lambda n: PAGES[n], **extra,
     )
@@ -82,7 +91,12 @@ def _boot_agent():
 # ---------- Pages ----------
 @app.route("/")
 def home():
-    return page("home", "index.html")
+    return page("home", "brief.html")
+
+
+@app.route("/radio")
+def radio_page():
+    return page("radio", "index.html")
 
 
 @app.route("/trader")
@@ -188,7 +202,15 @@ def ai_ask():
 @app.route("/api/stations")
 def api_stations():
     """Live news per station (refreshed in the background every 10 min), snapshot until the first refresh lands."""
-    return jsonify(news_live.get_stations())
+    d = dict(news_live.get_stations())
+    d.pop("brief", None)
+    return jsonify(d)
+
+
+@app.route("/api/brief")
+def api_brief():
+    """What is moving the market: news pressure per asset (BTC, ETH, alts, gold, oil, S&P 500, dollar) + analysed news feed."""
+    return jsonify(news_live.get_brief())
 
 
 @app.route("/api/tts")
@@ -236,8 +258,9 @@ def api_candles():
         except Exception:
             return sym, None
 
-    with ThreadPoolExecutor(max_workers=6) as ex:
-        res = dict(ex.map(one, syms))
+    res = dict([one(syms[0])]) if syms else {}      # finds the exchange that answers from this server
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        res.update(dict(ex.map(one, syms[1:])))
     data = {k: v[0] for k, v in res.items() if v}
     sources = sorted({v[1] for v in res.values() if v})
     out = {"ok": len(data) > 0, "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),

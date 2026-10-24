@@ -27,25 +27,28 @@
       Crypto<b>AI</b>
     </a>
     <div class="nav-links">
-      <a href="{{ link('home') }}" {% if page=='home' %}aria-current="page"{% endif %}>کره رادیو</a>
+      <a href="{{ link('home') }}" {% if page=='home' %}aria-current="page"{% endif %}>هوش بازار</a>
+      <a href="{{ link('radio') }}" {% if page=='radio' %}aria-current="page"{% endif %}>کره رادیو</a>
       <a href="{{ link('trader') }}" {% if page=='trader' %}aria-current="page"{% endif %}>تریدر</a>
-      <a href="{{ link('analysis') }}" {% if page=='analysis' %}aria-current="page"{% endif %}>تحلیل کریپتو</a>
+      <a href="{{ link('analysis') }}" {% if page=='analysis' %}aria-current="page"{% endif %}>تحلیل خبر</a>
       {% if is_admin %}<a href="{{ link('sales') }}" {% if page=='sales' %}aria-current="page"{% endif %}>پیدا کردن مشتری</a>
       <a href="{{ link('admin') }}" {% if page=='admin' %}aria-current="page"{% endif %}>پنل مدیر</a>{% endif %}
     </div>
-    <div class="nav-status" id="nav-status"><span class="dot"></span><span id="nav-status-t">در حال بررسی…</span></div>
+    {% if is_admin %}<div class="nav-status" id="nav-status"><span class="dot"></span><span id="nav-status-t">در حال بررسی…</span></div>
+    {% elif channel %}<a class="nav-join" href="{{ channel }}" target="_blank" rel="noopener">کانال تلگرام</a>{% endif %}
   </nav>
   <div class="mbar" id="mbar" aria-label="بازار: طلا، نفت و دامیننس"></div>
   <main class="main">
     {% block content %}{% endblock %}
   </main>
-  <script>
+  <footer class="site-foot">CryptoAI · محتوای این سایت تحلیلی و آموزشی است و توصیهٔ سرمایه‌گذاری نیست.</footer>
+  {% if is_admin %}<script>
     AI.status().then(s => {
       const el = document.getElementById("nav-status");
       el.classList.toggle("on", s.ok);
       document.getElementById("nav-status-t").textContent = s.label;
     });
-  </script>
+  </script>{% endif %}
   <script src="{{ asset('js/market-bar.js') }}"></script>
   {% block scripts %}{% endblock %}
 </div>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}CryptoAI · کره رادیو{% endblock %}
+{% block title %}CryptoAI · رادیو کریپتو{% endblock %}
 {% block head %}<link rel="stylesheet" href="{{ asset('css/radio.css') }}">{% endblock %}
 {% block content %}
 <div class="wrap">
@@ -43,7 +43,7 @@
       </div>
       <div class="notes">
         <div class="hd">
-          <h3>نکته‌های هوش مصنوعی: چه چیزی بازار را بالا یا پایین می‌برد</h3>
+          <h3>این خبرها بازار را به کدام سمت می‌برند؟</h3>
           <button class="btn" id="reanalyze" hidden>تحلیل دوباره</button>
         </div>
         <div id="notes" style="display:grid;gap:8px"></div>
@@ -51,7 +51,6 @@
       </div>
     </aside>
   </div>
-  <p class="foot">خبرها از منابع ذکرشده در هر خبر جمع‌آوری شده‌اند. نکته‌ها تحلیل اثر خبر روی بازار هستند، نه سیگنال خرید یا فروش.</p>
 </div>
 {% endblock %}
 {% block scripts %}

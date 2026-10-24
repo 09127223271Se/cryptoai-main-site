@@ -20,7 +20,7 @@ function renderUpdated() {
   const el = $("updated");
   if (DATA.live) {
     const t = new Date(DATA.updated);
-    el.textContent = `خبرهای زنده از ${(DATA.feeds || []).join("، ")} · آخرین به‌روزرسانی ${faTime(t, undefined, false)} (هر ۱۰ دقیقه)`;
+    el.textContent = `خبرهای زنده از سراسر دنیا · آخرین به‌روزرسانی ${faTime(t, undefined, false)}`;
   } else if (DATA.refreshing) {
     el.textContent = "در حال گرفتن خبرهای زنده… تا آن موقع خبرهای ذخیره‌شده نمایش داده می‌شوند.";
   } else {
@@ -40,7 +40,7 @@ TICK.forEach(c => {
   tk.append(s); pills[c] = s;
 });
 const srcPill = document.createElement("span"); srcPill.className = "pill"; srcPill.textContent = "در حال اتصال به صرافی…"; tk.append(srcPill);
-const clockPill = document.createElement("span"); clockPill.className = "pill num"; tk.append(clockPill);
+const clockPill = document.createElement("span");
 const marketNow = {};
 if (window.SITE_MODE === "server") {
   LivePrices.subscribe(TICK, (sym, v) => {
@@ -52,10 +52,10 @@ if (window.SITE_MODE === "server") {
     const sm = s.querySelector("small");
     if (isFinite(v.chg24h)) { sm.textContent = (v.chg24h >= 0 ? "+" : "") + (v.chg24h * 100).toFixed(2) + "%"; sm.style.color = v.chg24h >= 0 ? "var(--up)" : "var(--down)"; }
     s.className = "pill live";
-  }, st => { srcPill.textContent = st.live ? "قیمت لحظه‌ای · " + st.source : "قیمت زنده در دسترس نیست"; });
+  }, st => { srcPill.textContent = st.live ? "● قیمت لحظه‌ای" : "قیمت لحظه‌ای در دسترس نیست"; srcPill.style.color = st.live ? "var(--up)" : ""; });
 } else {
   (DATA.market || []).forEach(m => { if (pills[m.c]) { pills[m.c].querySelector("b").textContent = "≈ " + m.p; pills[m.c].querySelector("small").textContent = DATA.market_date || ""; } });
-  srcPill.textContent = "پیش‌نمایش · قیمت ذخیره‌شده";
+  srcPill.textContent = "قیمت‌های ذخیره‌شده";
 }
 function tickClock() {
   const now = new Date();
@@ -302,7 +302,7 @@ async function speakNeural(s) {
     if (k + 1 < order.length) { const pre = new Audio(); pre.preload = "auto"; pre.src = ttsUrl(s, order[k + 1]); }  // warm the next item
     markLive(i);
     await playUrl(ttsUrl(s, i), token);
-    if (k === 0) $("voice").textContent = "گوینده: دلارا · صدای عصبی فارسی";
+    if (k === 0) $("voice").textContent = "گوینده: دلارا";
   }
   if (token === playToken) { setPlaying(false); clearLive(); }
   return true;
@@ -311,7 +311,7 @@ function speakDevice(s) {
   if (!synth) { $("voice").textContent = "این مرورگر پخش صدا را پشتیبانی نمی‌کند."; setPlaying(false); return; }
   synth.cancel(); loadVoices();
   const pv = pickVoice();
-  $("voice").textContent = pv.lang === "fa" ? "صدای دستگاه (صدای گوینده در دسترس نبود)" : "صدای فارسی روی این دستگاه نیست؛ نسخهٔ انگلیسی پخش می‌شود";
+  $("voice").textContent = pv.lang === "fa" ? "در حال پخش" : "پخش به انگلیسی";
   const parts = [{ txt: pv.lang === "fa" ? `این‌جا رادیو کریپتو، ${s.fa}.` : `This is Crypto Radio, ${s.en}.`, i: -1 }];
   s.news.forEach((n, i) => parts.push({ txt: pv.lang === "fa" && n.lang !== "en" ? n.t + ". " + n.b : n.en, i }));
   setPlaying(true);
@@ -359,8 +359,8 @@ function renderSheet(s) {
     if (n.kind === "official" || n.kind === "macro") { const k = document.createElement("span"); k.className = "kind " + n.kind; k.textContent = n.kind === "official" ? "منبع رسمی" : "اقتصاد کلان"; d.querySelector(".meta").prepend(k); }
     const a = d.querySelector("a"); a.textContent = n.source.name; a.href = n.source.url; nb.append(d);
   });
-  if (s.live) renderNotes(s.notes, s.notes.length ? "تحلیل هوش مصنوعی روی خبرهای زنده" : "برای این خبرها هنوز تحلیلی نیامده؛ «تحلیل دوباره» را بزنید.");
-  else renderNotes(s.notes, `تحلیل Claude هنگام جمع‌آوری خبرها (${DATA.updated_fa})`);
+  if (s.live) renderNotes(s.notes, s.notes.length ? "" : "تحلیل این خبرها چند لحظهٔ دیگر آماده می‌شود.");
+  else renderNotes(s.notes, "");
   tickClock();
 }
 function renderDial() {
@@ -386,7 +386,7 @@ AI.status().then(st => { $("reanalyze").hidden = !st.ok; });
 $("reanalyze").onclick = async () => {
   if (!selected) return; const s = selected;
   if (ctl) ctl.abort(); ctl = new AbortController();
-  $("reanalyze").disabled = true; $("ai-s").textContent = "هوش مصنوعی در حال تحلیل اثر خبرها…";
+  $("reanalyze").disabled = true; $("ai-s").textContent = "در حال تحلیل…";
   const live = Object.entries(marketNow).map(([c, v]) => `${c} ${fmtPrice(v.price)} (${(v.chg24h * 100).toFixed(2)}% 24h)`).join(", ");
   const M = window.MARKETS || {}, D = M.dominance;
   const macro = [M.gold && `gold ${M.gold.price.toFixed(0)} USD/oz`, M.wti && `WTI ${M.wti.price.toFixed(2)}`, M.brent && `Brent ${M.brent.price.toFixed(2)}`,
@@ -404,7 +404,7 @@ ${JSON.stringify(s.news.map(n => ({ date: n.d, title: n.en })), null, 1)}`;
     const res = await AI.ask(prompt, { json: true, signal: ctl.signal });
     const arr = Array.isArray(res) ? res : (res && res.notes);
     if (selected !== s) return;
-    if (Array.isArray(arr) && arr.length) renderNotes(arr.slice(0, 4).map(x => ({ c: Array.isArray(x.c) ? x.c.slice(0, 4) : [], dir: x.dir, n: String(x.n || ""), w: String(x.w || "") })), "تحلیل تازهٔ هوش مصنوعی");
+    if (Array.isArray(arr) && arr.length) renderNotes(arr.slice(0, 4).map(x => ({ c: Array.isArray(x.c) ? x.c.slice(0, 4) : [], dir: x.dir, n: String(x.n || ""), w: String(x.w || "") })), "");
     else $("ai-s").textContent = "هوش مصنوعی نکته‌ای برنگرداند.";
   } catch (e) { if (!e || e.code !== "cancelled") $("ai-s").textContent = AI.errorText(e); }
   finally { $("reanalyze").disabled = false; }

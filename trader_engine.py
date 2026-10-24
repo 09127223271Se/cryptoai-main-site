@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import os
 import math
+import time
 import requests
 import numpy as np
 
@@ -40,7 +41,7 @@ _INTERVALS = {  # our name -> (binance, okx, bybit, coinbase seconds)
 
 def _binance(host):
     def f(sym, iv, limit):
-        r = requests.get(f"https://{host}/api/v3/klines", headers=UA, timeout=10,
+        r = requests.get(f"https://{host}/api/v3/klines", headers=UA, timeout=6,
                          params={"symbol": f"{sym}USDT", "interval": _INTERVALS[iv][0], "limit": limit})
         r.raise_for_status()
         return [[int(k[0]) // 1000, float(k[1]), float(k[2]), float(k[3]), float(k[4]), float(k[5])] for k in r.json()]
@@ -49,7 +50,7 @@ def _binance(host):
 
 
 def _okx(sym, iv, limit):
-    r = requests.get("https://www.okx.com/api/v5/market/candles", headers=UA, timeout=10,
+    r = requests.get("https://www.okx.com/api/v5/market/candles", headers=UA, timeout=6,
                      params={"instId": f"{sym}-USDT", "bar": _INTERVALS[iv][1], "limit": min(limit, 300)})
     r.raise_for_status()
     j = r.json()
@@ -59,7 +60,7 @@ def _okx(sym, iv, limit):
 
 
 def _bybit(sym, iv, limit):
-    r = requests.get("https://api.bybit.com/v5/market/kline", headers=UA, timeout=10,
+    r = requests.get("https://api.bybit.com/v5/market/kline", headers=UA, timeout=6,
                      params={"category": "spot", "symbol": f"{sym}USDT", "interval": _INTERVALS[iv][2], "limit": min(limit, 1000)})
     r.raise_for_status()
     j = r.json()
@@ -73,7 +74,7 @@ def _coinbase(sym, iv, limit):
     g = _INTERVALS[iv][3]
     if not g:
         raise RuntimeError("coinbase: interval not supported")
-    r = requests.get(f"https://api.exchange.coinbase.com/products/{sym}-USD/candles", headers=UA, timeout=10,
+    r = requests.get(f"https://api.exchange.coinbase.com/products/{sym}-USD/candles", headers=UA, timeout=6,
                      params={"granularity": g})
     r.raise_for_status()
     rows = r.json()[:limit]   # [time, low, high, open, close, volume] newest first
@@ -84,6 +85,7 @@ _okx.__name__, _bybit.__name__, _coinbase.__name__ = "OKX", "Bybit", "Coinbase"
 SOURCES = [_binance("data-api.binance.vision"), _binance("api.binance.com"), _okx, _bybit, _coinbase]
 SOURCE_LABEL = {"data-api.binance.vision": "Binance", "api.binance.com": "Binance", "OKX": "OKX", "Bybit": "Bybit", "Coinbase": "Coinbase"}
 _preferred = [0]          # index of the source that answered last
+_down: dict = {}          # source index -> time it last failed
 last_errors: dict = {}    # symbol -> last error text, for /api/health
 
 
@@ -92,6 +94,9 @@ def fetch_rows(symbol: str, interval: str = "1h", limit: int = 240):
     if interval not in _INTERVALS:
         raise ValueError(f"unsupported interval {interval}")
     order = [_preferred[0]] + [i for i in range(len(SOURCES)) if i != _preferred[0]]
+    # skip exchanges that failed in the last 5 minutes (keeps the page fast when one is blocked)
+    now = time.time()
+    order = [i for i in order if now - _down.get(i, 0) > 300] or order
     errs = []
     for i in order:
         src = SOURCES[i]
@@ -103,7 +108,10 @@ def fetch_rows(symbol: str, interval: str = "1h", limit: int = 240):
             last_errors.pop(symbol, None)
             return rows[-limit:], SOURCE_LABEL[src.__name__]
         except Exception as e:  # try the next exchange
-            errs.append(f"{src.__name__}: {str(e)[:120]}")
+            msg = str(e)
+            if "too few" not in msg and "not supported" not in msg and "no data" not in msg and "Invalid" not in msg and "400" not in msg:
+                _down[i] = time.time()      # the exchange itself is unreachable, not just this coin
+            errs.append(f"{src.__name__}: {msg[:120]}")
     last_errors[symbol] = errs
     raise RuntimeError("; ".join(errs))
 

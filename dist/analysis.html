@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>CryptoAI · تحلیل کریپتو</title>
+  <title>CryptoAI · تحلیل خبر</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&family=Lalezar&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -27,13 +27,15 @@
       Crypto<b>AI</b>
     </a>
     <div class="nav-links">
-      <a href="index.html" >کره رادیو</a>
+      <a href="index.html" >هوش بازار</a>
+      <a href="radio.html" >کره رادیو</a>
       <a href="trader.html" >تریدر</a>
-      <a href="analysis.html" aria-current="page">تحلیل کریپتو</a>
+      <a href="analysis.html" aria-current="page">تحلیل خبر</a>
       <a href="sales.html" >پیدا کردن مشتری</a>
       <a href="index.html" >پنل مدیر</a>
     </div>
     <div class="nav-status" id="nav-status"><span class="dot"></span><span id="nav-status-t">در حال بررسی…</span></div>
+    
   </nav>
   <div class="mbar" id="mbar" aria-label="بازار: طلا، نفت و دامیننس"></div>
   <main class="main">
@@ -41,20 +43,20 @@
 <div class="wrap narrow" style="margin-inline:auto">
   <div class="page-head">
     <div>
-      <h1>تحلیل و <span>محتوای</span> کریپتو</h1>
-      <p>خبر را بچسبانید یا موضوع را انتخاب کنید. هوش مصنوعی جهت بازار، کوین‌های متأثر و متن پست سه‌زبانه را می‌نویسد؛ بدون نقطهٔ ورود و بدون سیگنال.</p>
+      <h1>تحلیل <span>هوشمند خبر</span></h1>
+      <p>هر خبری را بچسبانید؛ هوش مصنوعی می‌گوید این خبر روی بیت‌کوین، اتریوم، آلت‌کوین‌ها، طلا، نفت، بازار سهام آمریکا و دلار چه اثری دارد و چرا.</p>
     </div>
   </div>
 
   <section class="panel">
     <div class="pb">
       <div class="field">
-        <label for="news-text">متن خبر (اختیاری)</label>
-        <textarea id="news-text" rows="6" placeholder="خبر را اینجا بچسبانید…"></textarea>
+        <label for="news-text">متن یا لینک‌نشدهٔ خبر</label>
+        <textarea id="news-text" rows="6" placeholder="مثلاً: فدرال رزرو نرخ بهره را ۰٫۲۵ درصد کاهش داد…"></textarea>
       </div>
       <div class="row">
         <div class="field" style="flex:1;min-width:160px">
-          <label for="focus">موضوع</label>
+          <label for="focus">یا یک موضوع را انتخاب کنید</label>
           <select id="focus">
             <option value="general">عمومی</option>
             <option value="Bitcoin">Bitcoin</option>
@@ -74,6 +76,7 @@
 </div>
 
   </main>
+  <footer class="site-foot">CryptoAI · محتوای این سایت تحلیلی و آموزشی است و توصیهٔ سرمایه‌گذاری نیست.</footer>
   <script>
     AI.status().then(s => {
       const el = document.getElementById("nav-status");
@@ -86,16 +89,13 @@
 <script>
 (() => {
   const $ = id => document.getElementById(id);
-  const prompt = (text, focus) => `You are the analyst of a crypto news channel that publishes in Persian, English and Arabic.
-${text ? "Analyse this news item:\n\"\"\"\n" + text.slice(0, 6000) + "\n\"\"\"" : "Write a short market-structure brief about: " + focus + ". Say clearly that you have no live data and describe what to watch, not today's prices."}
-
-Answer in Persian with these sections:
-1) خلاصهٔ خبر (2-3 lines)
-2) جهت احتمالی بازار: صعودی / نزولی / خنثی, with one-line reason
-3) کوین‌های متأثر: list tickers and why each could move up or down
-4) ریسک‌ها و چیزی که باید زیر نظر داشت
-5) پست تلگرام: one short post each in فارسی, English and العربية (max 60 words each)
-Rules: no entry points, no targets, no stop-loss, no buy/sell advice. End with a one-line educational disclaimer.`;
+  const prompt = (text, focus) => `You are a senior cross-market analyst for a Persian crypto & markets website.
+${text ? "Analyse this news item:\n\"\"\"\n" + text.slice(0, 6000) + "\n\"\"\"" : "Explain what usually moves this market right now and what to watch: " + focus + ". You have no live data; do not quote today's prices."}
+Answer in Persian with these sections and short lines:
+1) خلاصهٔ خبر (۲ خط)
+2) اثر روی بازارها — one line each for: بیت‌کوین، اتریوم، آلت‌کوین‌ها، طلا، نفت، S&P 500، دلار آمریکا. For each: ↑ / ↓ / خنثی, strength (ملایم/متوسط/قوی), and the channel of effect in one short sentence (for example: stocks down -> risk-off -> BTC usually follows; oil up -> inflation -> later rate cuts -> pressure on crypto).
+3) مهم‌ترین چیزی که باید زیر نظر داشت (۲ تا ۳ مورد)
+No buy/sell advice, no price targets.${window.IS_ADMIN ? "\n4) پست تلگرام: one short post each in فارسی, English and العربية (max 60 words each)." : ""}`;
 
   $("btn-analyze").onclick = async () => {
     const btn = $("btn-analyze"), out = $("result"), st = $("st");
@@ -108,13 +108,13 @@ Rules: no entry points, no targets, no stop-loss, no buy/sell advice. End with a
         try {
           const r = await fetch(window.API_BASE + "/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, focus }) });
           const d = await r.json();
-          if (d.ok) { out.textContent = typeof d.result === "string" ? d.result : JSON.stringify(d.result, null, 2); done = true; st.textContent = "تحلیل با crypto-business"; }
+          if (d.ok) { out.textContent = typeof d.result === "string" ? d.result : JSON.stringify(d.result, null, 2); done = true; st.textContent = ""; }
         } catch (e) {}
       }
       // 2) the site's AI (Groq on the server, Claude on the preview)
       if (!done) {
         const t = await AI.ask(prompt(text, focus), { onText: ({ text }) => { out.textContent = text; } });
-        out.textContent = t; st.textContent = "قبل از انتشار بخوانید و تأیید کنید.";
+        out.textContent = t; st.textContent = "";
       }
     } catch (e) { st.textContent = AI.errorText(e); }
     btn.disabled = false; btn.textContent = "شروع تحلیل";

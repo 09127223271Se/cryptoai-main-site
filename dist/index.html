@@ -1,9 +1,9 @@
-  <title>CryptoAI · کره رادیو</title>
+  <title>CryptoAI · هوش بازار</title>
   <meta name="claude:viewport-fit-sides" content="cover">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&family=Lalezar&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="static/css/main.css">
-  <link rel="stylesheet" href="static/css/radio.css">
+  <link rel="stylesheet" href="static/css/brief.css">
   <script>
     /* "server": Flask backend answers /api/*.  "static": hosted preview, AI falls back to Claude. */
     window.SITE_MODE = "static";
@@ -21,70 +21,70 @@
       Crypto<b>AI</b>
     </a>
     <div class="nav-links">
-      <a href="index.html" aria-current="page">کره رادیو</a>
+      <a href="index.html" aria-current="page">هوش بازار</a>
+      <a href="radio.html" >کره رادیو</a>
       <a href="trader.html" >تریدر</a>
-      <a href="analysis.html" >تحلیل کریپتو</a>
+      <a href="analysis.html" >تحلیل خبر</a>
       <a href="sales.html" >پیدا کردن مشتری</a>
       <a href="index.html" >پنل مدیر</a>
     </div>
     <div class="nav-status" id="nav-status"><span class="dot"></span><span id="nav-status-t">در حال بررسی…</span></div>
+    
   </nav>
   <div class="mbar" id="mbar" aria-label="بازار: طلا، نفت و دامیننس"></div>
   <main class="main">
     
 <div class="wrap">
-  <div class="page-head">
-    <div>
-      <h1>رادیو <span>کریپتو</span></h1>
-      <p id="updated">اخبار کریپتو از هر گوشهٔ دنیا</p>
+  <section class="hero">
+    <div class="hero-text">
+      <span class="eyebrow"><span class="live-dot"></span> هوش بازار · زنده</span>
+      <h1>امروز چه چیزی <span>بازار را حرکت می‌دهد؟</span></h1>
+      <p>هوش مصنوعی خبرهای مهم دنیا را از بانک‌های مرکزی، بازار سهام، نفت و کریپتو می‌خواند و نشان می‌دهد هر خبر بیت‌کوین، طلا، نفت، سهام و دلار را به کدام سمت هل می‌دهد و چرا.</p>
+      <div class="row">
+        
+        <a class="btn big" href="radio.html">گوش دادن به رادیو کریپتو</a>
+      </div>
     </div>
-    <div class="ticker" id="ticker" aria-label="بازار"></div>
-  </div>
-
-  <div class="dial" id="dial" role="tablist" aria-label="ایستگاه‌ها"></div>
-
-  <div class="stage">
-    <div class="globe" id="globe">
-      <canvas id="cv" aria-label="کرهٔ زمین با ایستگاه‌های رادیو کریپتو؛ بکشید تا بچرخد"></canvas>
-      <div class="ring" aria-hidden="true"></div>
-      <span class="mapnote" id="mapnote" hidden>تصویر ماهواره‌ای بارگذاری نشد؛ ایستگاه‌ها کار می‌کنند</span>
-      <span class="hint">بکشید تا بچرخد · ایستگاه را در دایره بگذارید یا رویش بزنید</span>
-      <div class="zoom"><button id="zin" aria-label="بزرگ‌نمایی">+</button><button id="zout" aria-label="کوچک‌نمایی">−</button></div>
+    <div class="hero-meta">
+      <span class="status" id="updated">در حال خواندن خبرهای تازه…</span>
     </div>
+  </section>
 
-    <aside class="panel sheet" aria-live="polite">
-      <div class="tuner">
-        <span class="freq num" id="freq">CRYPTO FM</span>
-        <h2 id="st-name">–</h2>
-        <span class="where" id="st-where"></span>
-        <span class="where" id="st-clock" style="color:var(--signal)"></span>
-        <div class="player">
-          <button class="play" id="play" aria-label="پخش">
-            <svg viewBox="0 0 24 24" id="ic-play"><path fill="currentColor" d="M7 4.5v15l13-7.5z"/></svg>
-            <svg viewBox="0 0 24 24" id="ic-pause" hidden><path fill="currentColor" d="M6 4h4.5v16H6zM13.5 4H18v16h-4.5z"/></svg>
-          </button>
-          <div class="eq" id="eq"><i></i><i></i><i></i><i></i><i></i></div>
-          <span class="voice" id="voice">برای شنیدن خبرها پخش را بزنید</span>
-        </div>
+  <section aria-labelledby="h-assets">
+    <div class="sec-head">
+      <h2 id="h-assets">فشار خبری روی هر بازار</h2>
+      <span class="status">روی هر کارت بزنید تا ببینید چه خبرهایی آن را حرکت داده‌اند</span>
+    </div>
+    <div class="assets" id="assets"></div>
+    <div class="drawer panel" id="drawer" hidden>
+      <div class="drawer-head">
+        <div><h3 id="dr-title"></h3><span class="pressure" id="dr-label"></span></div>
+        <button class="btn" id="dr-close" aria-label="بستن">بستن</button>
       </div>
-      <div class="news">
-        <h3>خبرهای این ایستگاه</h3>
-        <div id="news" style="display:grid;gap:10px"></div>
+      <p class="dr-summary" id="dr-summary"></p>
+      <div class="drivers" id="dr-list"></div>
+    </div>
+  </section>
+
+  
+
+  <section aria-labelledby="h-feed">
+    <div class="sec-head">
+      <h2 id="h-feed">خبرهای اثرگذار</h2>
+      <div class="seg" role="group" aria-label="فیلتر خبرها" id="filters">
+        <button aria-pressed="true" data-f="all">همه</button>
+        <button aria-pressed="false" data-f="top">مهم‌ترین</button>
+        <button aria-pressed="false" data-f="crypto">کریپتو</button>
+        <button aria-pressed="false" data-f="macro">اقتصاد جهانی</button>
       </div>
-      <div class="notes">
-        <div class="hd">
-          <h3>نکته‌های هوش مصنوعی: چه چیزی بازار را بالا یا پایین می‌برد</h3>
-          <button class="btn" id="reanalyze" hidden>تحلیل دوباره</button>
-        </div>
-        <div id="notes" style="display:grid;gap:8px"></div>
-        <span class="status" id="ai-s" role="status"></span>
-      </div>
-    </aside>
-  </div>
-  <p class="foot">خبرها از منابع ذکرشده در هر خبر جمع‌آوری شده‌اند. نکته‌ها تحلیل اثر خبر روی بازار هستند، نه سیگنال خرید یا فروش.</p>
+    </div>
+    <div class="asset-filter" id="asset-filter" hidden><span id="af-text"></span><button class="btn" id="af-clear">همهٔ خبرها</button></div>
+    <div class="feed" id="feed"></div>
+  </section>
 </div>
 
   </main>
+  <footer class="site-foot">CryptoAI · محتوای این سایت تحلیلی و آموزشی است و توصیهٔ سرمایه‌گذاری نیست.</footer>
   <script>
     AI.status().then(s => {
       const el = document.getElementById("nav-status");
@@ -93,10 +93,5 @@
     });
   </script>
   <script src="static/js/market-bar.js"></script>
-  
-<script>window.echarts={registerMap:function(n,j){if(n==="world")window.__worldGeo=j}};</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/world.js"></script>
-<script src="static/js/radio.js"></script>
-
+  <script src="static/js/brief.js"></script>
 </div>

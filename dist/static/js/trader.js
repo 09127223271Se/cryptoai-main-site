@@ -187,8 +187,8 @@ async function loadFromBrowser(){
 }
 function setDataPill(){
   const p=$("data-pill");
-  if(state.source==="live"){p.className="pill live";const t=state.fetched?new Date(state.fetched).toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"}):"";p.textContent="دادهٔ زنده · "+(state.liveSource||"")+" · "+t}
-  else{p.className="pill warn";p.textContent=window.SITE_MODE==="server"?"دادهٔ زنده در دسترس نبود؛ دادهٔ نمونه":"پیش‌نمایش: دادهٔ نمونه، قیمت‌ها واقعی نیستند"}
+  if(state.source==="live"){p.className="pill live";p.textContent="● زنده"}
+  else{p.className="pill warn";p.textContent="اتصال به بازار برقرار نشد؛ نمایش نمونه"}
 }
 
 /* ---------- canvas helpers ---------- */
@@ -331,6 +331,7 @@ function postData(){
     dataNote:a.csv?"real data from user CSV":state.source==="live"?"live Binance data":"SAMPLE DATA, not real market prices"};
 }
 function renderPost(){
+  if(!$("tg"))return;
   const a=state.list[state.sel],d=postData(),st=state.simDone?simStats():null;
   const dot=a.bias>0?"🟢":a.bias<0?"🔴":"⚪️";
   let t=`📊 ${a.sym}/USDT · تحلیل ساختار بازار\n\nقیمت: ${L(d.price)}\nتغییر ۲۴ ساعت: ${L(d.change24h)}\nجهت ساختار: ${d.structure} ${dot}\n`;
@@ -341,13 +342,14 @@ function renderPost(){
   t+=`\n⚠️ این تحلیل آموزشی است و سیگنال خرید یا فروش نیست.\n#${a.sym} #کریپتو`;
   const el=$("tg");el.dir="rtl";el.textContent=t;$("copy-s").textContent="";
 }
-$("copy").onclick=async()=>{const t=$("tg").textContent,s=$("copy-s");
+if($("copy"))$("copy").onclick=async()=>{const t=$("tg").textContent,s=$("copy-s");
   try{await navigator.clipboard.writeText(t);s.textContent="کپی شد"}
   catch(e){const r=document.createRange();r.selectNodeContents($("tg"));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);s.textContent="متن انتخاب شد؛ Ctrl+C بزنید"}};
 
 /* ---------- AI writing (server LLM or Claude on the preview) ---------- */
 let ctl=null;
 (async()=>{
+  if(!$("ai-write"))return;   // the post-writing tools are for the site admin only
   const st=await AI.status(),s=$("ai-s");
   if(!st.ok){s.textContent="هوش مصنوعی در دسترس نیست؛ متن آماده بالا قابل استفاده است.";return}
   s.textContent="آماده";$("ai-write").disabled=false;$("img-box").hidden=!st.images;
@@ -390,7 +392,7 @@ Do NOT give entry points, targets, stop-losses or buy/sell advice. If something 
 })();
 
 /* ---------- send draft to the Telegram approval bot (server only) ---------- */
-if(window.SITE_MODE==="server"&&window.IS_ADMIN){
+if(window.SITE_MODE==="server"&&window.IS_ADMIN&&$("send-tg")){
   $("send-tg").hidden=false;
   $("send-tg").onclick=async()=>{
     const s=$("copy-s");s.textContent="در حال ارسال…";$("send-tg").disabled=true;

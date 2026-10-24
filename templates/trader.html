@@ -6,7 +6,7 @@
   <div class="page-head">
     <div>
       <h1>تریدر <span>کریپتو</span></h1>
-      <p>اسکنر چارت، برگهٔ ستاپ و شبیه‌سازی ۱۰٬۰۰۰ مسیر قیمت. خروجی، تحلیل ساختار بازار است، نه سیگنال خرید یا فروش.</p>
+      <p>۲۴ ارز دیجیتال، لحظه‌به‌لحظه اسکن می‌شوند: الگوهای چارت، سطوح کلیدی، و ۱۰٬۰۰۰ مسیر احتمالی قیمت برای ۲۴ ساعت آینده.</p>
     </div>
     <div class="row">
       <span class="pill warn" id="data-pill">در حال بارگذاری داده…</span>
@@ -82,7 +82,7 @@
     <p class="note">روش: بازنمونه‌گیری بلوکی از بازده‌های ساعتی ۷ روز اخیر همین کوین، با حذف میانگین بازده (بدون فرض جهت). شبیه‌سازی فقط می‌گوید با نوسان فعلی، قیمت در این افق معمولاً تا کجا می‌رود؛ پیش‌بینی جهت نیست.</p>
   </section>
 
-  <section class="panel" aria-labelledby="h-post">
+  {% if is_admin %}<section class="panel" aria-labelledby="h-post">
     <div class="ph"><h2 id="h-post">پست تلگرام برای تأیید</h2><span class="sub">بعد از تأیید شما در ربات منتشر می‌شود</span></div>
     <div class="post">
       <div style="display:grid;gap:10px;min-width:0">
@@ -95,7 +95,7 @@
       </div>
       <div class="aibox">
         <h3>نوشتن با هوش مصنوعی</h3>
-        <p>همین داده‌ها را به هوش مصنوعی می‌دهد تا پست را به زبان انتخابی بنویسد، بدون نقطهٔ ورود و بدون سیگنال.</p>
+        <p>پست این ارز را به زبان انتخابی بنویس.</p>
         <div class="row">
           <select class="btn" id="lang" aria-label="زبان">
             <option value="fa">فارسی</option><option value="en">English</option><option value="ar">العربية</option>
@@ -111,8 +111,7 @@
         <span class="status" id="ai-s" role="status">در حال اتصال…</span>
       </div>
     </div>
-  </section>
-  <p class="foot">این ابزار آموزشی است. هیچ‌کدام از خروجی‌ها توصیهٔ مالی یا سیگنال معاملاتی نیست.</p>
+  </section>{% endif %}
 </div>
 {% endblock %}
 {% block scripts %}<script src="{{ asset('js/trader.js') }}"></script>{% endblock %}
