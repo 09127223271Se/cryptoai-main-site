@@ -115,43 +115,77 @@ _mcache: dict = {}
 def _candles(sym):
     try:
         import trader_engine
-        rows, _ = trader_engine.fetch_rows(sym, "1h", 120)
-        return [(r[0] / 1000, float(r[1]), float(r[2]), float(r[3]), float(r[4])) for r in rows]
+        cs = trader_engine.fetch_candles(sym, "1h", 240)
+        return cs
     except Exception:
-        return []
+        return None
 
 
-def _ema(vals, n):
-    k, e = 2 / (n + 1), vals[0]
-    for v in vals[1:]:
-        e = v * k + e * (1 - k)
-    return e
-
-
-def market_state(sym="BTC") -> dict | None:
-    """Last 120 hourly candles → price, 24h change, 72h high/low, trend. Cached 60 s."""
-    c = _mcache.get(sym)
+def market_state(sym="BTC", news_score: int = 0) -> dict | None:
+    """Technical picture (trader engine) + Monte Carlo 24h range + today's news pressure → one outlook.
+    Cached 60 s. Never an entry point: it says where the market is, which way the evidence leans
+    and how far it can plausibly move, with probabilities."""
+    key = (sym, news_score)
+    c = _mcache.get(key)
     if c and time.time() - c["at"] < 60:
         return c["v"]
-    k = _candles(sym)
-    if len(k) < 60:
+    cs = _candles(sym)
+    if not cs or len(cs["c"]) < 180:
         return None
-    closes = [x[4] for x in k]
-    last72 = k[-72:]
-    e20, e50 = _ema(closes, 20), _ema(closes, 50)
-    p = closes[-1]
-    trend = "up" if p > e20 > e50 else "down" if p < e20 < e50 else "range"
-    v = {"sym": sym, "candles": last72, "price": p, "ch24": (p / closes[-25] - 1) * 100,
-         "hi": max(x[2] for x in last72), "lo": min(x[3] for x in last72), "trend": trend}
-    _mcache[sym] = {"at": time.time(), "v": v}
+    import trader_engine as te
+    a = te.analyze(sym, cs)
+    sim = te.simulate(a, horizon=24, paths=4000, seed=7)
+    k = [(float(cs["t"][i]) / 1000, float(cs["o"][i]), float(cs["h"][i]), float(cs["l"][i]), float(cs["c"][i]))
+         for i in range(len(cs["c"]) - 72, len(cs["c"]))]
+    tech = a["bias"]                                   # -1 / 0 / +1 from trend + patterns
+    news = 1 if news_score >= 12 else -1 if news_score <= -12 else 0
+    if tech and news and tech == news:
+        verdict, lean = ("up_strong" if tech > 0 else "down_strong"), tech
+    elif tech and news and tech != news:
+        verdict, lean = "conflict", 0
+    elif tech or news:
+        lean = tech or news
+        verdict = "up" if lean > 0 else "down"
+    else:
+        verdict, lean = "range", 0
+    v = {"sym": sym, "candles": k, "price": a["last"], "ch24": a["chg24h"] * 100,
+         "res": a["res"], "sup": a["sup"], "week_high": a["week_high"], "week_low": a["week_low"],
+         "rsi": a["rsi"], "trend": "up" if a["trend"] > 0 else "down" if a["trend"] < 0 else "range",
+         "tags": [t["fa"] for t in a["tags"]], "tech": tech, "news": news, "news_score": news_score,
+         "verdict": verdict, "lean": lean,
+         "p05": sim["p05"], "p25": sim["p25"], "p50": sim["median"], "p75": sim["p75"], "p95": sim["p95"],
+         "touch_res": sim["touch"]["resistance"]["prob"], "touch_sup": sim["touch"]["support"]["prob"]}
+    _mcache[key] = {"at": time.time(), "v": v}
     return v
 
 
-TREND_FA = {"up": "صعودی", "down": "نزولی", "range": "نوسانی (بدون روند روشن)"}
+VERDICT_FA = {"up_strong": "صعودی (تکنیکال و خبر هم‌جهت)", "down_strong": "نزولی (تکنیکال و خبر هم‌جهت)",
+              "up": "متمایل به صعود", "down": "متمایل به نزول", "conflict": "متضاد: چارت و خبر خلاف هم‌اند",
+              "range": "بدون جهت روشن (نوسانی)"}
+VERDICT_SHORT = {"up_strong": "صعودی قوی", "down_strong": "نزولی قوی", "up": "متمایل به صعود",
+                 "down": "متمایل به نزول", "conflict": "چارت و خبر متضاد", "range": "نوسانی"}
+
+
+def outlook_text(ms: dict) -> list[str]:
+    """Persian lines for the caption."""
+    name = NAMES.get(ms["sym"], ms["sym"])
+    tf = {"up": "صعودی", "down": "نزولی", "range": "خنثی"}[ms["trend"]]
+    nf = "صعودی" if ms["news"] > 0 else "نزولی" if ms["news"] < 0 else "خنثی"
+    out = [f"🎯 <b>وضعیت {name}:</b> {_money(ms['price'])} ({'+' if ms['ch24'] >= 0 else ''}{ms['ch24']:.1f}٪ در ۲۴ ساعت)",
+           f"• روند ساعتی چارت: {tf}" + (f" · {'، '.join(ms['tags'][:2])}" if ms["tags"] else ""),
+           f"• فشار خبری: {nf}",
+           f"• جمع‌بندی: <b>{VERDICT_FA[ms['verdict']]}</b>",
+           f"• مقاومت نزدیک {_money(ms['res'])} (احتمال لمس در ۲۴ ساعت {ms['touch_res'] * 100:.0f}٪) · "
+           f"حمایت نزدیک {_money(ms['sup'])} ({ms['touch_sup'] * 100:.0f}٪)",
+           f"• محدودهٔ محتمل ۲۴ ساعت آینده: {_money(ms['p25'])} تا {_money(ms['p75'])} (۵۰٪) · "
+           f"{_money(ms['p05'])} تا {_money(ms['p95'])} (۹۰٪)"]
+    return out
 
 
 def _money(v):
     return f"${v:,.0f}" if v >= 100 else f"${v:,.2f}"
+
+
 
 
 # ------------------------------------------------------------------ the card
@@ -189,36 +223,49 @@ def render_card(n: dict, assets: list) -> bytes:
         y += 58
     y = max(y + 12, 200)
 
-    # left: price chart (the coin this news moves most; Bitcoin by default)
+    # left: price chart (the coin this news moves most; Bitcoin by default) + 24h probable range
     cx0, cy0, cx1, cy1 = 40, y, 610, 600
     _rr(d, (cx0, cy0, cx1, cy1), 18, fill=PANEL, outline=LINE)
     sym = "ETH" if any(x.get("a") == "ETH" and x.get("s", 1) > max([i.get("s", 1) for i in n.get("im") or [] if i.get("a") == "BTC"] or [0])
                        for x in n.get("im") or []) else "BTC"
-    ms = market_state(sym) or (market_state("BTC") if sym != "BTC" else None)
+    score = {a["key"]: a["score"] for a in assets}
+    ms = market_state(sym, score.get(sym, 0)) or (market_state("BTC", score.get("BTC", 0)) if sym != "BTC" else None)
     if ms:
         k = ms["candles"]
-        lo, hi = ms["lo"], ms["hi"]
-        pad = (hi - lo) * .08 or 1
+        vals = [x[2] for x in k] + [x[3] for x in k] + [ms["p05"], ms["p95"], ms["res"], ms["sup"]]
+        lo, hi = min(vals), max(vals)
+        pad = (hi - lo) * .06 or 1
         lo_s, hi_s = lo - pad, hi + pad
-        px0, px1, py0, py1 = cx0 + 22, cx1 - 96, cy0 + 96, cy1 - 24
-        step = (px1 - px0) / len(k)
+        px0, pxk, pxz, py0, py1 = cx0 + 22, cx1 - 190, cx1 - 110, cy0 + 100, cy1 - 24
+        step = (pxk - px0) / len(k)
         Y = lambda v: py1 - (v - lo_s) / (hi_s - lo_s) * (py1 - py0)
         for gy in range(4):
             yy = py0 + gy * (py1 - py0) / 3
-            d.line((px0, yy, cx1 - 22, yy), fill=LINE, width=1)
-        # 72h ceiling and floor
-        for lvl, col_l, lab in ((hi, DOWN, "سقف ۷۲ ساعت"), (lo, UP, "کف ۷۲ ساعت")):
+            d.line((px0, yy, pxz, yy), fill=LINE, width=1)
+        # 24h probable range: 90% band, 50% band, median
+        zone = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        zd = ImageDraw.Draw(zone)
+        zc = UP if ms["lean"] > 0 else DOWN if ms["lean"] < 0 else BRAND
+        zd.polygon([(pxk + 4, Y(ms["price"])), (pxz, Y(ms["p95"])), (pxz, Y(ms["p05"]))], fill=zc + (40,))
+        zd.polygon([(pxk + 4, Y(ms["price"])), (pxz, Y(ms["p75"])), (pxz, Y(ms["p25"]))], fill=zc + (90,))
+        img.paste(zone, (0, 0), zone)
+        d = ImageDraw.Draw(img)
+        d.line((pxk + 4, Y(ms["price"]), pxz, Y(ms["p50"])), fill=zc, width=2)
+        if FA:
+            _rtl(d, (pxz, py1 + 2), "۲۴ ساعت آینده", _f(13, False), MUTED)
+        # resistance and support
+        for lvl, col_l, lab in ((ms["res"], DOWN, "مقاومت"), (ms["sup"], UP, "حمایت")):
             yy = Y(lvl)
-            for xx in range(int(px0), int(px1), 14):
+            for xx in range(int(px0), int(pxz), 14):
                 d.line((xx, yy, xx + 8, yy), fill=col_l, width=2)
-            d.text((px1 + 8, yy - 24), _money(lvl), font=_fn(16), fill=col_l)
+            d.text((pxz + 8, yy - 22), _money(lvl), font=_fn(16), fill=col_l)
             if FA:
-                _rtl(d, (cx1 - 16, yy + 2), lab, _f(13, False), col_l)
+                _rtl(d, (cx1 - 14, yy + 1), lab, _f(14, False), col_l)
         # candles
-        for i, (t, o, h, l, c) in enumerate(k):
+        for i, (t, o, h_, l_, c) in enumerate(k):
             x = px0 + i * step + step / 2
             col_c = UP if c >= o else DOWN
-            d.line((x, Y(h), x, Y(l)), fill=col_c, width=1)
+            d.line((x, Y(h_), x, Y(l_)), fill=col_c, width=1)
             top, bot = Y(max(o, c)), Y(min(o, c))
             d.rectangle((x - step * .36, top, x + step * .36, max(bot, top + 1)), fill=col_c)
         # the news moment
@@ -230,18 +277,18 @@ def render_card(n: dict, assets: list) -> bytes:
                 d.line((x, yy, x, yy + 6), fill=SIGNAL, width=2)
             if FA:
                 _rtl(d, (x - 6, py0 - 22), "زمان خبر", _f(15), SIGNAL)
-        # header: coin, price, 24h, trend
+        # header: coin, price, 24h, combined verdict
         col = UP if ms["ch24"] >= 0 else DOWN
         d.text((cx0 + 22, cy0 + 14), f"{ms['sym']} · 72h", font=_f(19, False), fill=MUTED)
         d.text((cx0 + 22, cy0 + 38), _money(ms["price"]), font=_fn(30), fill=FG)
         pw = d.textlength(_money(ms["price"]), font=_fn(30))
         d.text((cx0 + 34 + pw, cy0 + 48), f"{'+' if ms['ch24'] >= 0 else ''}{ms['ch24']:.2f}% 24h", font=_fn(19), fill=col)
-        tcol = UP if ms["trend"] == "up" else DOWN if ms["trend"] == "down" else FLAT
         if FA:
-            tl = "روند " + ("صعودی" if ms["trend"] == "up" else "نزولی" if ms["trend"] == "down" else "نوسانی")
-            tw = _len(d, tl, _f(18))
-            _rr(d, (cx1 - 22 - tw - 26, cy0 + 16, cx1 - 22, cy0 + 52), 18, outline=tcol, width=2)
-            _rtl(d, (cx1 - 35, cy0 + 21), tl, _f(18), tcol)
+            vl = VERDICT_SHORT[ms["verdict"]]
+            vcol = UP if ms["lean"] > 0 else DOWN if ms["lean"] < 0 else (SIGNAL if ms["verdict"] == "conflict" else FLAT)
+            tw = _len(d, vl, _f(18))
+            _rr(d, (cx1 - 22 - tw - 26, cy0 + 16, cx1 - 22, cy0 + 52), 18, outline=vcol, width=2)
+            _rtl(d, (cx1 - 35, cy0 + 21), vl, _f(18), vcol)
     else:
         d.text((cx0 + 22, cy0 + 20), "BTC", font=_f(26), fill=MUTED)
 
@@ -330,10 +377,14 @@ def _take(n, assets):
         return ""
     press = ", ".join(f"{a['key']}:{a['label']}({a['score']})" for a in assets)
     im = "; ".join(f"{x['a']} {'up' if x['d'] > 0 else 'down'} ({x['w']})" for x in (n.get("im") or []) if x.get("d"))
-    prompt = ("Write 2 short Persian sentences (max 45 words) for a Telegram crypto channel: what this news means for "
-              "crypto traders today and what to watch next (e.g. a data release, a reaction in the dollar or yields). "
-              "Educational tone. NO buy/sell advice, NO entry points, NO price targets. Output only the sentences.\n"
-              f"NEWS: {n.get('t')} — {n.get('b')}\nEFFECTS: {im}\nTODAY'S NEWS PRESSURE: {press}")
+    ms = market_state("BTC", next((a["score"] for a in assets if a["key"] == "BTC"), 0))
+    chart = (f"BTC {ms['price']:.0f}, hourly trend {ms['trend']}, patterns {ms['tags']}, RSI {ms['rsi']:.0f}, "
+             f"resistance {ms['res']:.0f}, support {ms['sup']:.0f}, combined view {ms['verdict']}") if ms else "n/a"
+    prompt = ("Write 2 short Persian sentences (max 45 words) for a Telegram crypto channel. Match the news with the chart: "
+              "does the news support or contradict what the chart shows, and which level (resistance or support) matters next "
+              "and what to watch (a data release, the dollar, yields). Educational tone. NO buy/sell advice, NO entry points, "
+              "NO stop-loss. Output only the sentences.\n"
+              f"NEWS: {n.get('t')} — {n.get('b')}\nEFFECTS: {im}\nTODAY'S NEWS PRESSURE: {press}\nCHART: {chart}")
     try:
         return ai_client.ask(prompt, max_tokens=300, timeout=40).strip().strip('"')
     except Exception:
@@ -346,7 +397,11 @@ def caption(n: dict, assets: list, with_take: bool = True) -> str:
            (f" · {e(n['city'])}" if n.get("city") else "")
     im = [x for x in (n.get("im") or []) if x.get("d")]
 
-    def build(reason_len, body_len, take):
+    score = {a["key"]: a["score"] for a in assets}
+    ms = market_state("BTC", score.get("BTC", 0))
+    full = outlook_text(ms) if ms else []
+
+    def build(reason_len, body_len, take, look):
         parts = [head, "", f"<b>{e(n.get('t', ''))}</b>"]
         if n.get("b") and body_len:
             b = n["b"] if len(n["b"]) <= body_len else n["b"][:body_len].rsplit(" ", 1)[0] + "…"
@@ -361,23 +416,20 @@ def caption(n: dict, assets: list, with_take: bool = True) -> str:
                              f"{STRENGTH.get(x.get('s', 1), '')}" + (f": {e(w)}" if reason_len and w else ""))
         if take:
             parts += ["", f"🧠 <b>نگاه CryptoAI:</b> {e(take)}"]
-        top = [a for a in assets if a["key"] in ("BTC", "GOLD", "SPX", "DXY")]
-        if top:
-            parts += ["", "🌡 <b>فشار خبری امروز:</b> " + " · ".join(
-                f"{NAMES[a['key']]} {a['label']}" for a in top)]
-        ms = market_state("BTC")
-        if ms:
-            parts += ["", f"📈 <b>بیت‌کوین الان:</b> {_money(ms['price'])} ({'+' if ms['ch24'] >= 0 else ''}{ms['ch24']:.1f}٪ در ۲۴ ساعت)",
-                      f"روند ۷۲ ساعته: {TREND_FA[ms['trend']]} · سقف اخیر {_money(ms['hi'])} · کف اخیر {_money(ms['lo'])}"]
+        if look:
+            parts += [""] + look
         parts += ["", f"<i>منبع: {e(n['source']['name'])}</i>", DISCLAIMER]
         return "\n".join(parts)
 
     take = _take(n, assets) if with_take else ""
-    for rl, bl, tk in ((110, 260, take), (80, 180, take), (60, 120, take), (60, 0, take), (0, 0, take), (0, 0, "")):
-        c = build(rl, bl, tk)
-        if len(c) <= 1000:      # Telegram photo captions: 1024 characters
+    short = [full[0], full[3], full[4], full[5]] if full else []
+    c = ""
+    for rl, bl, tk, lk in ((90, 220, take, full), (70, 160, take, full), (60, 0, take, full), (60, 0, take, short),
+                           (50, 0, "", short), (0, 0, "", short), (0, 0, "", [])):
+        c = build(rl, bl, tk, lk)
+        if len(c) <= 1024:      # Telegram photo captions: 1024 characters
             return c
-    return c[:1000]
+    return c
 
 
 def channel_buttons() -> dict | None:
