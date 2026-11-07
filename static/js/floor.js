@@ -21,7 +21,7 @@
       var sym = (btn && btn.dataset.s) || "BTC";
       var c;
       try { c = await (await fetch((window.API_BASE||"") + "/api/coin/" + sym)).json(); } catch (e) { return; }
-      if (!c || !c.ok || !c.candles) return;
+      if (!c || !c.candles || !c.res || !c.sup) return;
       var rng = Math.max((c.res - c.sup) || 0, (c.price || 1) * 0.004);
       var projUp = Math.max((c.res || 0) + rng, c.p75 || 0);
       var projDn = Math.min((c.sup || 0) - rng, c.p25 || 0);
@@ -65,8 +65,9 @@
       x.fillText(EN ? (brokeSup ? "after SUP break" : "if SUP breaks") : (brokeSup ? "پس از شکست حمایت" : "اگر حمایت بشکند"), Rz + 4, yDn + 17);
       x.beginPath(); x.arc(midX2, ySup, 4, 0, 7); x.fill();
     }
-    setTimeout(redraw, 1200);
-    setInterval(redraw, 15000);
+    setTimeout(redraw, 800);
+    setTimeout(redraw, 2500);
+    setInterval(redraw, 12000);
     document.addEventListener("click", function(e){
       if (e.target && e.target.closest && e.target.closest("#fl-coins button")) setTimeout(redraw, 600);
     });
