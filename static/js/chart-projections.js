@@ -78,7 +78,7 @@
       try {
         c = await (await fetch((window.API_BASE || "") + "/api/coin/" + sym)).json();
       } catch (e) { return; }
-      if (!c || !c.ok || !c.candles) return;
+      if (!c || !c.candles || !c.res || !c.sup) return;
       ensureProj(c);
       var dpr = devicePixelRatio || 1;
       var W = host.clientWidth, H = host.clientHeight;
@@ -100,7 +100,8 @@
     }
 
     redraw();
-    setInterval(redraw, 20000);
+    setTimeout(redraw, 1500);
+    setInterval(redraw, 15000);
     document.addEventListener("click", function (e) {
       if (e.target && e.target.closest && e.target.closest("#fl-coins button")) setTimeout(redraw, 500);
     });
