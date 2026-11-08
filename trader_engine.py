@@ -33,6 +33,22 @@ def fetch_rows(sym: str, interval: str = "1h", limit: int = 200):
         return [], "error"
 
 
+def fetch_candles(sym: str, interval: str = "1h", limit: int = 240):
+    """Dict form expected by post_card.market_state: keys t,o,h,l,c."""
+    rows, src = fetch_rows(sym, interval, limit)
+    if not rows:
+        return None
+    return {
+        "t": [r[0] for r in rows],
+        "o": [r[1] for r in rows],
+        "h": [r[2] for r in rows],
+        "l": [r[3] for r in rows],
+        "c": [r[4] for r in rows],
+        "v": [r[5] for r in rows],
+        "src": src,
+    }
+
+
 def _rsi(closes, period=14):
     if len(closes) < period + 1:
         return 50.0
@@ -57,7 +73,6 @@ def analyze(sym: str, candles=None) -> dict[str, Any]:
                     "rsi": 50, "trend": 0, "bias": 0, "tags": []}
         o = [r[1] for r in rows]; h = [r[2] for r in rows]; l = [r[3] for r in rows]; c = [r[4] for r in rows]
     else:
-        # candles dict from post_card: keys t,o,h,l,c
         if isinstance(candles, dict):
             o = [float(x) for x in candles["o"]]
             h = [float(x) for x in candles["h"]]
@@ -75,11 +90,9 @@ def analyze(sym: str, candles=None) -> dict[str, Any]:
     week_high = max(h[-min(168, n):])
     week_low = min(l[-min(168, n):])
     rsi = _rsi(c)
-    # simple trend via EMA-ish slope
     ma_fast = sum(c[-12:]) / min(12, n)
     ma_slow = sum(c[-36:]) / min(36, n)
     trend = 1 if ma_fast > ma_slow * 1.002 else -1 if ma_fast < ma_slow * 0.998 else 0
-    # swing structure
     tags = []
     hh = h[-5] > h[-15] if n > 15 else False
     hl = l[-5] > l[-15] if n > 15 else False
@@ -125,7 +138,7 @@ def simulate(a: dict, horizon: int = 24, paths: int = 2000, seed: int = 7) -> di
         return {"p05": 0, "p25": 0, "median": 0, "p75": 0, "p95": 0,
                 "touch": {"resistance": {"prob": 0}, "support": {"prob": 0}}}
     rng = random.Random(seed)
-    vol = 0.012  # ~hourly vol proxy
+    vol = 0.012
     finals = []
     touch_r = touch_s = 0
     res, sup = float(a.get("res") or p), float(a.get("sup") or p)
