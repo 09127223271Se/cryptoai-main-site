@@ -1,0 +1,24 @@
+/* Larger live chart on the analysis floor */
+.fl-chart {
+  height: 360px !important;
+  min-height: 360px;
+}
+@media (max-width: 760px) {
+  .fl-chart {
+    height: 300px !important;
+    min-height: 300px;
+  }
+}
+@media (min-width: 1100px) {
+  .fl-chart {
+    height: 420px !important;
+    min-height: 420px;
+  }
+}
+.fl-screen {
+  min-height: 0;
+}
+.fl-shead b {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
