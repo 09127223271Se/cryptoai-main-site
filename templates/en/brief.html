@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}CryptoAI · Market Intelligence{% endblock %}
-{% block head %}<link rel="stylesheet" href="{{ asset('css/brief.css') }}"><link rel="stylesheet" href="{{ asset('css/floor.css') }}">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/brief.css') }}"><link rel="stylesheet" href="{{ asset('css/floor.css') }}"><link rel="stylesheet" href="{{ asset('css/floor-live.css') }}">{% endblock %}
 {% block content %}
 <div class="wrap">
   {% include "_floor.html" %}
@@ -46,7 +46,7 @@
     </div>
     <div class="row">
       <a class="btn primary big" href="{{ link('pro') }}">Discover Pro</a>
-      {% if channel %}<a class="btn big" href="{{ channel }}" target="_blank" rel="noopener">Free channel</a>{% endif %}
+      {% if channel %}<a class="btn big" href="{{ link('pro') }}" target="_blank" rel="noopener">Free channel</a>{% endif %}
     </div>
   </section>
 
