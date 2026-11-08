@@ -1,4 +1,4 @@
-/* floor.js — base floor + sharp if-break projection overlay */
+/* floor.js — base floor + live price + sharp projection overlay */
 (function () {
   var s = document.createElement("script");
   s.src = "https://cdn.jsdelivr.net/gh/09127223271Se/cryptoai-main-site@75d95e5ffc608eadba8dcfaa811e4bcbd3058ca5/static/js/floor.js";
@@ -28,18 +28,46 @@
     function label(x, text, color, tx, ty) {
       x.font = "700 11px IBM Plex Mono, ui-monospace, monospace";
       x.textBaseline = "middle";
-      var padX = 5, padY = 3;
       var w = x.measureText(text).width;
       var bx = Math.round(tx), by = Math.round(ty);
       x.fillStyle = "rgba(8,12,28,0.88)";
-      x.fillRect(bx - 2, by - 8, w + padX * 2, 16);
+      x.fillRect(bx - 2, by - 8, w + 10, 16);
       x.fillStyle = color;
-      x.fillText(text, bx + padX - 2, by + 0.5);
+      x.fillText(text, bx + 3, by + 0.5);
+    }
+    function activeSym() {
+      var btn = document.querySelector("#fl-coins button[aria-pressed='true']");
+      return (btn && btn.dataset.s) || "BTC";
     }
 
-    async function redraw() {
+    // Live price from /api/prices every 3s (near real-time like Binance ticker)
+    async function tickPrice() {
+      if (document.hidden) return;
+      var sym = activeSym();
+      try {
+        var j = await (await fetch((window.API_BASE || "") + "/api/prices?symbols=" + encodeURIComponent(sym))).json();
+        var row = (j.prices || []).find(function (p) { return p.c === sym || p.sym === sym; }) || (j.prices || [])[0];
+        if (!row || row.price == null) return;
+        var el = document.getElementById("fl-px");
+        if (el) el.textContent = usd(row.price);
+        var ch = document.getElementById("fl-ch");
+        if (ch && row.chg24h != null) {
+          var pct = Number(row.chg24h);
+          ch.textContent = (pct >= 0 ? "+" : "") + pct.toFixed(2) + "% 24h";
+          ch.style.color = pct >= 0 ? "#33d39a" : "#ff4fa3";
+        }
+      } catch (e) {}
+    }
+
+    // Force chart redraw by re-clicking active coin (CDN floor loadCoin)
+    function refreshChart() {
+      if (document.hidden) return;
       var btn = document.querySelector("#fl-coins button[aria-pressed='true']");
-      var sym = (btn && btn.dataset.s) || "BTC";
+      if (btn) btn.click();
+    }
+
+    async function redrawProj() {
+      var sym = activeSym();
       var c;
       try { c = await (await fetch((window.API_BASE || "") + "/api/coin/" + sym)).json(); } catch (e) { return; }
       if (!c || !c.candles || !c.res || !c.sup) return;
@@ -67,21 +95,16 @@
       var midX = Math.round(L + (Rk - L) * 0.58);
       var midX2 = Math.round(L + (Rk - L) * 0.70);
       var brokeRes = c.price > c.res, brokeSup = c.price < c.sup;
-
-      // upside path
       var yRes = Math.round(Y(c.res)), yUp = Math.round(Y(projUp));
-      x.setLineDash([5, 5]); x.strokeStyle = gold; x.lineWidth = 2; x.globalAlpha = 1;
+      x.setLineDash([5, 5]); x.strokeStyle = gold; x.lineWidth = 2;
       x.beginPath(); x.moveTo(midX, yRes); x.lineTo(midX, yUp); x.stroke();
       x.beginPath(); x.moveTo(midX, yUp); x.lineTo(Rz, yUp); x.stroke();
       x.setLineDash([]);
       x.globalAlpha = 0.14; x.fillStyle = gold;
       x.beginPath(); x.moveTo(px, py); x.lineTo(Rz, yUp); x.lineTo(Rz, yRes); x.closePath(); x.fill();
-      x.globalAlpha = 1;
-      x.fillStyle = gold; x.beginPath(); x.arc(midX, yRes, 3.5, 0, 7); x.fill();
+      x.globalAlpha = 1; x.fillStyle = gold; x.beginPath(); x.arc(midX, yRes, 3.5, 0, 7); x.fill();
       label(x, usd(projUp), gold, Rz + 2, yUp - 10);
       label(x, EN ? (brokeRes ? "after RES break" : "if RES breaks") : (brokeRes ? "پس از شکست مقاومت" : "اگر مقاومت بشکند"), gold, Rz + 2, yUp + 8);
-
-      // downside path
       var ySup = Math.round(Y(c.sup)), yDn = Math.round(Y(projDn));
       x.setLineDash([5, 5]); x.strokeStyle = dn; x.lineWidth = 2;
       x.beginPath(); x.moveTo(midX2, ySup); x.lineTo(midX2, yDn); x.stroke();
@@ -89,19 +112,24 @@
       x.setLineDash([]);
       x.globalAlpha = 0.14; x.fillStyle = dn;
       x.beginPath(); x.moveTo(px, py); x.lineTo(Rz, yDn); x.lineTo(Rz, ySup); x.closePath(); x.fill();
-      x.globalAlpha = 1;
-      x.fillStyle = dn; x.beginPath(); x.arc(midX2, ySup, 3.5, 0, 7); x.fill();
+      x.globalAlpha = 1; x.fillStyle = dn; x.beginPath(); x.arc(midX2, ySup, 3.5, 0, 7); x.fill();
       label(x, usd(projDn), dn, Rz + 2, yDn - 10);
       label(x, EN ? (brokeSup ? "after SUP break" : "if SUP breaks") : (brokeSup ? "پس از شکست حمایت" : "اگر حمایت بشکند"), dn, Rz + 2, yDn + 8);
     }
 
-    setTimeout(redraw, 900);
-    setTimeout(redraw, 2500);
-    setInterval(redraw, 12000);
+    setTimeout(tickPrice, 500);
+    setTimeout(redrawProj, 900);
+    setTimeout(refreshChart, 2000);
+    setInterval(tickPrice, 3000);
+    setInterval(function () { redrawProj(); }, 8000);
+    setInterval(refreshChart, 8000);
     document.addEventListener("click", function (e) {
-      if (e.target && e.target.closest && e.target.closest("#fl-coins button")) setTimeout(redraw, 600);
+      if (e.target && e.target.closest && e.target.closest("#fl-coins button")) {
+        setTimeout(tickPrice, 400);
+        setTimeout(redrawProj, 700);
+      }
     });
-    window.addEventListener("resize", function () { setTimeout(redraw, 200); });
+    window.addEventListener("resize", function () { setTimeout(redrawProj, 200); });
   };
   document.head.appendChild(s);
 })();
