@@ -1,4 +1,4 @@
-"""trader_engine.py — offline-safe loader with structure/BOS tags."""
+"""trader_engine.py — offline-safe loader; always exposes last_errors for /api/health."""
 from __future__ import annotations
 
 import urllib.request
@@ -8,12 +8,16 @@ _URL = (
     "513e3d7bcc7cae62ee06b3b9d2b37b8ee84e5b88/trader_engine.py"
 )
 
+# Guaranteed for app.health() even if remote load fails
+last_errors = {}
+DEFAULT_COINS = ["BTC", "ETH", "SOL", "XRP", "TON", "DOGE"]
+trader_bp = None
+
 _src = None
-_err = None
 try:
-    _src = urllib.request.urlopen(_URL, timeout=15).read().decode("utf-8")
+    _src = urllib.request.urlopen(_URL, timeout=12).read().decode("utf-8")
 except Exception as e:
-    _err = e
+    last_errors["load"] = str(e)[:200]
 
 if _src:
     _old = """    struct = 0
@@ -63,28 +67,17 @@ if _src:
         )
         if _src2 != _src:
             _src = _src2
-    _old2 = """    tags = []
-    add = lambda id_, fa, en, d: tags.append({\"id\": id_, \"fa\": fa, \"en\": en, \"dir\": d})
-    tight = width < med_w * 0.85
-"""
-    _new2 = """    tags = []
-    add = lambda id_, fa, en, d: tags.append({\"id\": id_, \"fa\": fa, \"en\": en, \"dir\": d})
-    struct = _structure_bias(H, L, last, n, rh, rl, add)
-    tight = width < med_w * 0.85
-"""
-    if _old2 in _src:
-        _src = _src.replace(_old2, _new2, 1)
-    _old3 = "    struct = _structure_bias(H, L, last, n, rh, rl, add)\n    trend = 0\n"
-    if _old3 in _src:
-        _src = _src.replace(_old3, "    trend = 0\n", 1)
-    exec(compile(_src, "trader_engine.py", "exec"), globals())
+    try:
+        exec(compile(_src, "trader_engine.py", "exec"), globals())
+    except Exception as e:
+        last_errors["exec"] = str(e)[:200]
+    # remote module may not define last_errors — keep ours if missing
+    if "last_errors" not in globals() or not isinstance(globals().get("last_errors"), dict):
+        last_errors = {}
 else:
-    # Offline / network-fail fallback so gunicorn can still boot
     from flask import Blueprint
 
     trader_bp = Blueprint("trader", __name__)
-    last_errors = {}
-    DEFAULT_COINS = ["BTC", "ETH", "SOL", "XRP", "TON", "DOGE"]
 
     def analyze(sym, candles=None):
         return {
