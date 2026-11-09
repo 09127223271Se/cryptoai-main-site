@@ -3,6 +3,12 @@
 {% block head %}<link rel="stylesheet" href="{{ asset('css/trader.css') }}"><link rel="stylesheet" href="{{ asset('css/floor.css') }}">{% endblock %}
 {% block content %}
 <div class="wrap">
+  <div class="page-head tools-head" style="background:linear-gradient(90deg,#0e7490,#7c3aed);color:#fff;border-radius:14px;padding:16px 18px;margin-bottom:12px;">
+    <div>
+      <h1 style="margin:0;font-size:28px;">میز تحلیل و پیشنهاد جهت</h1>
+      <p style="margin:6px 0 0;opacity:.9;">این صفحه مخصوص تحلیل چارت و بحث ایجنت‌هاست. پیشنهاد جهت فقط آموزشی است و هیچ سفارش واقعی زده نمی‌شود.</p>
+    </div>
+  </div>
   {% include "_floor.html" %}
   <div class="page-head tools-head">
     <div>
@@ -99,7 +105,7 @@
         <p>پست این ارز را به زبان انتخابی بنویس.</p>
         <div class="row">
           <select class="btn" id="lang" aria-label="زبان">
-            <option value="fa">فارسی</option><option value="en">English</option><option value="ar">العربية</option>
+            <option value="fa">فارسی</option><option value="en">English</option><option value="ar">العربیة</option>
           </select>
           <button class="btn" id="ai-write" disabled>بنویس</button>
           <button class="btn" id="ai-stop" hidden>توقف</button>
