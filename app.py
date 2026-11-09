@@ -489,5 +489,42 @@ def api_tts():
     return Response(audio, mimetype="audio/mpeg", headers={"Cache-Control": "public, max-age=86400"})
 
 
+# ---------- Telegram agent ----------
+@app.route("/telegram/webhook", methods=["POST"])
+def telegram_webhook():
+    if not hmac.compare_digest(request.headers.get("X-Telegram-Bot-Api-Secret-Token", ""), telegram_bot.webhook_secret()):
+        return "forbidden", 403
+    try:
+        telegram_bot.handle_update(request.get_json(force=True) or {})
+    except Exception as e:
+        telegram_bot._state["last_error"] = str(e)[:200]
+    return "ok"
+
+
+@app.route("/api/agent/draft", methods=["POST"])
+@admin_required(api=True)
+def api_agent_draft():
+    try:
+        return jsonify({"ok": True, "message": telegram_bot.draft_news_now(force=True)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)[:200]}), 502
+
+
+@app.route("/api/agent/run", methods=["GET", "POST"])
+def api_agent_run():
+    """Wake-up call for an outside scheduler (the free server sleeps when idle).
+    Uses the existing scheduler interval and configured publication mode."""
+    news_live.get_stations()
+    res = telegram_bot.tick()
+    return jsonify({"ok": True, "drafted": bool(res and "فرستاده شد" in res)})
+
+
+@app.route("/api/agent/status")
+@admin_required(api=True)
+def api_agent_status():
+    return jsonify(telegram_bot.status())
+
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
