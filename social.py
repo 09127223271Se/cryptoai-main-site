@@ -6,7 +6,8 @@ story of the last 24 hours and sends, for Persian and English:
   • a square image 1080×1080 (Instagram post)
   • a vertical image 1080×1920 (Instagram story / Reels / TikTok photo post)
   • a caption with hashtags and the channel link
-Images go as files so Instagram gets full quality. Nothing is posted anywhere automatically.
+Purpose: attract followers with sourced news, then direct them to the matching-language website and Telegram channel.
+Images go privately to the admin as full-quality files for manual publication.
 """
 from __future__ import annotations
 
@@ -79,72 +80,129 @@ def _right(d, lang, xy, text, size, fill, bold=True):
         d.text(xy, text, font=pc._f(size, bold), fill=fill, anchor="ra")
 
 
+
+def _clean(text, lang):
+    text = str(text or "").strip()
+    return pc._no_fa(text) if lang == "en" else text
+
+
+def _short(text, limit):
+    text = str(text or "").strip()
+    return text if len(text) <= limit else text[:limit].rsplit(" ", 1)[0] + "…"
+
+
+def _destinations(lang):
+    from urllib.parse import urlencode, urlsplit, urlunsplit
+    base = pc.site_url()
+    site = ""
+    if base:
+        parts = urlsplit(base)
+        path = parts.path.rstrip("/") + ("/en/trader" if lang == "en" else "/trader")
+        site = urlunsplit((parts.scheme, parts.netloc, path,
+                          urlencode({"utm_source": "social", "utm_medium": "organic",
+                                     "utm_campaign": "daily_news", "utm_content": lang}), ""))
+    explicit = os.environ.get("PUBLIC_CHANNEL_URL_EN" if lang == "en" else "PUBLIC_CHANNEL_URL", "").strip()
+    channel = explicit if explicit.startswith("https://t.me/") else ""
+    if not channel and _channel(lang):
+        channel = "https://t.me/" + _channel(lang)[1:]
+    return site, channel
+
+
 def compose(card_png: bytes, n: dict, lang: str, w: int, h: int) -> bytes:
-    """Put the 1280×720 card on a square or vertical canvas with a big headline and a call to action."""
+    """News-first promotional artwork. No invented prices, dominance or charts."""
+    fa = lang == "fa"
+    title = _clean(n.get("t") if fa else n.get("en_t"), lang)
+    if not title:
+        raise ValueError("A verified headline in the selected language is required")
     img = _canvas(w, h)
     d = ImageDraw.Draw(img)
-    card = Image.open(io.BytesIO(card_png)).convert("RGB")
-    cw = w - 60
-    card = card.resize((cw, int(card.height * cw / card.width)), Image.LANCZOS)
-    pad = 30
-    d.text((pad + 10, 40), "CryptoAI", font=pc._f(64 if h > w else 54), fill=pc.BRAND)
-    date = datetime.fromtimestamp(n.get("ts") or time.time(), timezone.utc).strftime("%d %b %Y")
-    d.text((w - pad - 10, 60), date, font=pc._fn(34 if h > w else 30), fill=pc.MUTED, anchor="ra")
-    head = n.get("t") if lang == "fa" else (n.get("en_t") or n.get("t"))
-    if h > w:   # vertical: big headline, card, call to action
-        y = _text_block(d, lang, pad + 10, w - pad - 10, 190, head or "", 64, pc.FG, 4)
-        top = max(y + 50, 560)
-        img.paste(card, (pad, top))
-        y2 = top + card.height + 70
-        cta, bio = CTA[lang]
-        d = ImageDraw.Draw(img)
-        _right(d, lang, (w - pad - 10, y2), cta, 46, pc.SIGNAL) if lang == "fa" else d.text((pad + 10, y2), cta, font=pc._f(46), fill=pc.SIGNAL)
-        ch = _channel(lang)
-        line = (f"Telegram: {ch}" if ch else bio)
-        d.text((pad + 10, y2 + 90), line, font=pc._f(44), fill=pc.BRAND)
-        if ch:
-            _right(d, lang, (w - pad - 10, y2 + 170), bio, 36, pc.MUTED, False) if lang == "fa" else \
-                d.text((pad + 10, y2 + 170), bio, font=pc._f(36, False), fill=pc.MUTED)
-        # centre the body (headline → call to action) in the space under the header
-        end = y2 + 240
-        off = max(0, (h - end - 40) // 2)
-        if off:
-            body = img.crop((0, 150, w, end))
-            bg = _canvas(w, h)
-            bg.paste(img.crop((0, 0, w, 150)), (0, 0))
-            bg.paste(body, (0, 150 + off))
-            img = bg
-    else:       # square: headline, card, channel
-        y = _text_block(d, lang, pad + 10, w - pad - 10, 150, head or "", 50, pc.FG, 3)
-        top = max(y + 30, 330)
-        top = min(top, h - card.height - 110)
-        img.paste(card, (pad, top))
-        d = ImageDraw.Draw(img)
-        ch = _channel(lang)
-        d.text((pad + 10, h - 80), (f"Telegram: {ch}" if ch else CTA[lang][1]), font=pc._f(36), fill=pc.BRAND)
+    cyan, purple, gold = (56, 220, 255), (181, 98, 255), (255, 204, 99)
+    left, right = 72, w - 130
+    vertical = h > w
+    top = 160 if vertical else 70
+    d.rounded_rectangle((36, 36, w - 36, h - 36), 32, outline=purple, width=2)
+    d.text((left, top), "CryptoAI", font=pc._f(42), fill=cyan)
+    stamp = datetime.fromtimestamp(n.get("ts") or time.time(), timezone.utc).strftime("%d %b · %H:%M UTC")
+    d.text((left, top + 58), stamp, font=pc._fn(24), fill=pc.MUTED)
+    impacts = [x for x in (n.get("im") or []) if x.get("d")]
+    symbols = list(dict.fromkeys(str(x.get("a")) for x in impacts if x.get("a")))
+    symbol = symbols[0] if symbols else "MARKETS"
+    symbol = symbol if symbol in pc.EN else "MARKETS"
+    d.text((left, top + 125), symbol, font=pc._f(116 if vertical else 88),
+           fill=gold if symbol == "BTC" else cyan)
+    y = top + (290 if vertical else 245)
+    hook = "این خبر چرا مهم است؟" if fa else "WHY THIS NEWS MATTERS"
+    y = _text_block(d, lang, left, right, y, hook, 36, purple, 1)
+    y += 30
+    y = _text_block(d, lang, left, right, y, _short(title, 150),
+                    54 if vertical else 44, pc.FG, 4 if vertical else 3)
+    y += 32
+    if vertical:
+        body = _clean(n.get("b") if fa else n.get("en_b"), lang)
+        if body:
+            y = _text_block(d, lang, left, right, y, _short(body, 200), 32, pc.MUTED, 4)
+            y += 35
+        for item in impacts[:2]:
+            name = (pc.NAMES if fa else pc.EN).get(item.get("a"), "")
+            reason = _clean(item.get("w") if fa else item.get("we"), lang)
+            if not name or not reason:
+                continue
+            label = ("اثر احتمالی: " if fa else "Possible effect: ") + name
+            y = _text_block(d, lang, left, right, y, label, 30, cyan, 1)
+            y = _text_block(d, lang, left, right, y + 8, _short(reason, 100), 28, pc.FG, 2)
+            y += 20
+    footer = h - (420 if vertical else 210)
+    d.line((left, footer, right, footer), fill=purple, width=2)
+    _text_block(d, lang, left, right, footer + 20,
+                "برای خبرهای مهم بازار فالو کن" if fa else "FOLLOW FOR MARKET CONTEXT",
+                32, cyan, 1)
+    _text_block(d, lang, left, right, footer + 75,
+                "تحلیل کامل در سایت و تلگرام" if fa else "FULL ANALYSIS · SITE + TELEGRAM",
+                28, pc.FG, 1)
+    _text_block(d, lang, left, right, footer + 120,
+                "لینک‌ها در بیو" if fa else "LINKS IN BIO", 26, gold, 1)
+    if vertical:
+        source = _clean((n.get("source") or {}).get("name"), lang)
+        _text_block(d, lang, left, right, footer + 175,
+                    ("منبع: " if fa else "Source: ") + source, 22, pc.MUTED, 1)
+        _text_block(d, lang, left, right, footer + 220,
+                    "تحلیل خبری؛ نه سیگنال معامله" if fa else "News analysis, not a trade signal",
+                    22, pc.MUTED, 1)
     out = io.BytesIO()
     img.save(out, "PNG", optimize=True)
     return out.getvalue()
 
 
 def caption(n: dict, assets: list, lang: str) -> str:
-    """Plain-text caption for Instagram/TikTok (no HTML)."""
-    head = n.get("t") if lang == "fa" else (n.get("en_t") or n.get("t"))
-    im = [x for x in (n.get("im") or []) if x.get("d")][:4]
-    if lang == "fa":
-        lines = [f"📰 {head}", "", "اثر احتمالی:"]
-        for x in im:
-            lines.append(f"{'🟢' if x['d'] > 0 else '🔴'} {pc.NAMES.get(x['a'], x['a'])} {'↑' if x['d'] > 0 else '↓'} {pc.STRENGTH.get(x.get('s', 1), '')}: {x.get('w', '')}")
-        ch = _channel("fa")
-        lines += ["", "تحلیل لحظه‌ای همهٔ خبرهای مهم بازار در کانال تلگرام ما" + (f": {ch}" if ch else " (لینک در بیو)"),
-                  "⚠️ تحلیل خبر است، سیگنال خرید یا فروش نیست.", "", TAGS["fa"]]
-    else:
-        lines = [f"📰 {head}", "", "Likely effect:"]
-        for x in im:
-            lines.append(f"{'🟢' if x['d'] > 0 else '🔴'} {pc.EN.get(x['a'], x['a'])} {'↑' if x['d'] > 0 else '↓'} {pc.STRENGTH_EN.get(x.get('s', 1), '')}: {x.get('we', '')}")
-        ch = _channel("en")
-        lines += ["", "Live analysis of every market-moving story on our Telegram channel" + (f": {ch}" if ch else " (link in bio)"),
-                  "⚠️ News analysis, not a buy/sell signal.", "", TAGS["en"]]
+    fa = lang == "fa"
+    title = _clean(n.get("t") if fa else n.get("en_t"), lang)
+    body = _clean(n.get("b") if fa else n.get("en_b"), lang)
+    lines = [title, "", _short(body, 400)]
+    impacts = [x for x in (n.get("im") or []) if x.get("d")]
+    for item in impacts[:3]:
+        name = (pc.NAMES if fa else pc.EN).get(item.get("a"), "")
+        reason = _clean(item.get("w") if fa else item.get("we"), lang)
+        if name and reason:
+            lines.append(("اثر احتمالی بر " if fa else "Possible effect on ") + name + ": " + _short(reason, 150))
+    lines += ["", "کدام بخش این خبر را مهم‌تر می‌دانی؟" if fa else "Which part of this news matters most to you?",
+              "برای خبرهای مهم بازار فالو کن؛ این پست را برای بررسی بعدی ذخیره کن." if fa else
+              "Follow for market context. Save this post to revisit the story.",
+              "تحلیل کامل در سایت و خبرهای تازه در تلگرام — لینک‌ها در بیو." if fa else
+              "Full analysis on our site and fresh news on Telegram — links in bio."]
+    site, channel = _destinations(lang)
+    if site:
+        lines += ["", ("سایت: " if fa else "Website: ") + site]
+    if channel:
+        lines += [("تلگرام: " if fa else "Telegram: ") + channel]
+    source = n.get("source") or {}
+    source_name = _clean(source.get("name"), lang)
+    source_url = str(source.get("url") or "")
+    if source_url.startswith(("https://", "http://")):
+        lines += ["", ("منبع: " if fa else "Source: ") + source_name, source_url]
+    symbols = list(dict.fromkeys(x.get("a") for x in impacts if x.get("a") in ("BTC", "ETH", "GOLD", "OIL")))
+    tags = " ".join("#" + x for x in symbols[:3])
+    lines += ["", "تحلیل خبری است، نه سیگنال خریدوفروش." if fa else "News analysis, not a buy/sell signal.",
+              "#CryptoAI " + tags + (" #اخبار_بازار" if fa else " #MarketNews")]
     return "\n".join(lines)
 
 
@@ -271,14 +329,11 @@ def send_kit() -> str:
     if not n:
         return "خبر مهمی در ۲۴ ساعت اخیر برای بستهٔ شبکه‌های اجتماعی نبود."
     admin = tb.cfg()["admin"]
-    ig_note = ""
-    if ig_ready():
-        posted = instagram_daily(n, assets)
-        ig_note = (f"✅ اینستاگرام خودکار: {posted} منتشر شد.\n" if posted else
-                   f"⚠️ انتشار خودکار اینستاگرام نشد: {_rt['last_error']}\n")
-    tb.call("sendMessage", chat_id=admin, text=ig_note + "📲 بستهٔ امروز (فارسی و انگلیسی) برای تیک‌تاک و هر جای دیگر؛ کپشن زیر هر بسته است.")
+    tb.call("sendMessage", chat_id=admin, text="📲 بستهٔ تبلیغاتی خبر برای انتشار دستی؛ لینک سایت و تلگرام هر زبان در کپشن است. این خروجی تصویر است، نه ویدیو.")
     for lang in ("fa", "en"):
-        card = pc.render_card(n, assets, lang)
+        if not _clean(n.get("t") if lang == "fa" else n.get("en_t"), lang):
+            continue
+        card = b""
         _send_file(admin, compose(card, n, lang, 1080, 1080), f"cryptoai-{lang}-post-1080x1080.png", "Instagram post" if lang == "en" else "پست اینستاگرام (مربعی)")
         _send_file(admin, compose(card, n, lang, 1080, 1920), f"cryptoai-{lang}-story-1080x1920.png", "Story / Reels / TikTok" if lang == "en" else "استوری، ریلز و تیک‌تاک (عمودی)")
         tb.call("sendMessage", chat_id=admin, text=caption(n, assets, lang), disable_web_page_preview=True)
