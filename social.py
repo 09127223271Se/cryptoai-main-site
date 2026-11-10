@@ -365,6 +365,9 @@ def tick():
     if not tb.ready():
         return None
     now = datetime.now(SOCIAL_TZ)
+    # Keep the existing weekly Instagram token refresh maintenance intact.
+    if now.minute == 7:
+        ig_refresh()
     hh, mm = _scheduled_time()
     if (now.hour, now.minute) < (hh, mm):
         return None
