@@ -103,3 +103,16 @@ static/data/stations.json   ایستگاه‌ها، خبرها و نکته‌ه�
 - Each Monday the best predictor of the week in each channel gets 30 days of Pro (a one-time invite link to the Pro channel).
 - Anyone who opens the bot gets a personal invite link; every `REF_FRIENDS` (default 3) new members through it = `REF_PRO_DAYS` (default 7) days of Pro.
 - The bot needs, in each public channel, the admin right to invite users via link (for personal links and join tracking).
+
+
+## ریلز و تیک‌تاک از طریق بات تلگرام
+
+بات برای ادمین و در بستهٔ روزانه `/kit`، علاوه بر عکس‌های مربعی و عمودی فارسی و انگلیسی، ویدیوهای کوتاه MP4 عمودی ۹:۱۶ تولید و به چت شخصی مدیر ارسال می‌کند. انتشار این ویدیوها در Instagram یا TikTok خودکار نیست؛ فایل را بررسی و خودتان منتشر کنید.
+
+- `/reels`: فقط ساخت و ارسال ریلز ۱۵ ثانیه‌ای فارسی و انگلیسی از مهم‌ترین خبر ۲۴ ساعت اخیر
+- `/kit`: تصاویر، کپشن، هشتگ‌ها و ریلزهای آماده
+- `SOCIAL_REELS_ENABLED=0`: غیرفعال‌کردن تولید ویدیو (پیش‌فرض روشن)
+- `SOCIAL_HOUR_UTC`: ساعت بستهٔ روزانه (پیش‌فرض ۱۶ به‌وقت UTC)
+- `imageio-ffmpeg`: ابزار کدگذاری ویدیو که در `requirements.txt` نصب می‌شود
+
+ویدیوها **بی‌صدا** هستند تا بتوانید صدای دلخواه یا موسیقی مجاز پلتفرم را اضافه کنید. کیفیت خروجی ۷۲۰×۱۲۸۰ و مدت ۱۵ ثانیه است. خرابی یا در دسترس نبودن پردازش ویدیو نباید فرایند ساخت خبر، پست تلگرام یا تصویر روزانه را متوقف کند.
