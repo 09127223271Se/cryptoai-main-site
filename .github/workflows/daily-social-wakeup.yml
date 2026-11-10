@@ -1,0 +1,38 @@
+name: Keep CryptoAI awake for daily social kit
+
+# Render free web services can sleep when idle. GitHub Actions wakes the
+# existing Flask service, whose own social.tick() checks Stockholm time,
+# latest news and a backed-up once-per-day delivery marker.
+# We do not send content, publish to channels, or handle any secrets here.
+on:
+  schedule:
+    - cron: '*/15 17-20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cryptoai-daily-social-wakeup
+  cancel-in-progress: true
+
+jobs:
+  wake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Wake live CryptoAI service
+        env:
+          SOCIAL_WAKE_URL: ${{ vars.SOCIAL_WAKE_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Override SOCIAL_WAKE_URL with your actual Render/public site URL
+          # if the default service hostname differs.
+          BASE="${SOCIAL_WAKE_URL:-https://cryptoai-main-site.onrender.com}"
+          BASE="${BASE%/}"
+          echo "Checking CryptoAI health to wake the scheduled job"
+          curl --fail --location --silent --show-error \
+            --max-time 210 --retry 2 --retry-delay 8 --retry-all-errors \
+            "${BASE}/api/health" > /dev/null
+          echo "Service responded. Daily kit is controlled by Europe/Stockholm local time."

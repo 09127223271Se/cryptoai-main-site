@@ -1,0 +1,49 @@
+name: Validate CryptoAI social automation
+
+on:
+  pull_request:
+    paths:
+      - "social.py"
+      - "social_reels.py"
+      - "pro.py"
+      - ".github/workflows/daily-social-wakeup.yml"
+      - ".github/workflows/social-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Compile changed Python modules
+        run: python -m py_compile social.py social_reels.py pro.py telegram_bot.py app.py
+      - name: Verify local schedule and promotional branding without publishing
+        env:
+          PUBLIC_SITE_URL: https://example.com
+          PUBLIC_CHANNEL_URL: https://t.me/example_fa
+          PUBLIC_CHANNEL_URL_EN: https://t.me/example_en
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          from PIL import Image
+          import social
+          assert social._scheduled_time() == (19, 30)
+          assert ZoneInfo("Europe/Stockholm").key == "Europe/Stockholm"
+          urls = social.promo_links()
+          assert urls == ("https://example.com", "https://t.me/example_fa", "https://t.me/example_en"), urls
+          text = "\n".join(social.promo_caption("fa"))
+          assert all(u in text for u in urls)
+          image = Image.new("RGB", (1080, 1920), "#111111")
+          assert social.add_promo_footer(image).size == (1080, 1920)
+          assert image.getpixel((40, 1810)) != (17, 17, 17)
+          print("Social schedule and both Telegram promotions verified.")
+          PY

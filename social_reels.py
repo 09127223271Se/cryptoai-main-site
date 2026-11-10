@@ -46,9 +46,10 @@ def _scenes(poster_png: bytes, news: dict, lang: str) -> list[Image.Image]:
               lang, 970, 60)
     draw.rounded_rectangle((75, 1370, 1005, 1510), radius=29, fill=pc.BRAND)
     draw.text((140, 1403), "SAVE  •  SHARE  •  FOLLOW", font=pc._f(52), fill=pc.BG)
-    url = pc.site_url().replace("https://", "").replace("http://", "").strip("/")
-    draw.text((80, 1630), (url[:42] if url else "LINK IN BIO"), font=pc._f(46), fill=pc.FG)
-    draw.text((80, 1770), "News analysis • not financial advice", font=pc._f(34), fill=pc.MUTED)
+    draw.text((80, 1570), "News analysis • not financial advice", font=pc._f(34), fill=pc.MUTED)
+    # Include the CryptoAI website and Persian/English Telegram channels in the outro.
+    import social
+    social.add_promo_footer(outro)
     return [im.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS) for im in (intro, poster, outro)]
 
 
@@ -110,9 +111,10 @@ def send_reels(news: dict, assets: list) -> str:
             title = news.get("t") if lang == "fa" else news.get("en_t") or news.get("t")
             message = ("🎬 ریلز آماده برای اینستاگرام و تیک‌تاک (فارسی)" if lang == "fa" else
                        "🎬 Ready-to-post Instagram Reel / TikTok (English)")
+            caption_lines = [message, title or "", "", *social.promo_caption(lang)]
             response = requests.post(
                 tb.API.format(token=tb.cfg()["token"], method="sendVideo"),
-                data={"chat_id": admin, "caption": (message + "\n" + (title or ""))[:1000],
+                data={"chat_id": admin, "caption": "\n".join(caption_lines)[:1000],
                       "supports_streaming": "true"},
                 files={"video": (f"cryptoai-{lang}-reel.mp4", video, "video/mp4")}, timeout=120)
             response.raise_for_status()
