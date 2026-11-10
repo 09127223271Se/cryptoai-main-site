@@ -1,7 +1,7 @@
 """
 social.py — a daily ready-to-post kit for Instagram and TikTok, sent privately to the admin in Telegram.
 
-Every day at SOCIAL_HOUR_UTC (default 16) — or on demand with /kit — the bot picks the most market-moving
+Every day around 19:30 Europe/Stockholm — or on demand with /kit — the bot picks the most market-moving
 story of the last 24 hours and sends, for Persian and English:
   • a square image 1080×1080 (Instagram post)
   • a vertical image 1080×1920 (Instagram story / Reels / TikTok photo post)
@@ -12,16 +12,30 @@ from __future__ import annotations
 
 import io
 import os
+import threading
 import time
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 from PIL import Image, ImageDraw, ImageFilter
 
 import post_card as pc
 import telegram_bot as tb
 
-HOUR = int(os.environ.get("SOCIAL_HOUR_UTC", "16") or 16)
+SOCIAL_TZ = ZoneInfo("Europe/Stockholm")
 _rt = {"day": None, "last_error": None}
+_tick_lock = threading.Lock()
+
+
+def _scheduled_time():
+    """HH:MM in Europe/Stockholm; handles local daylight-saving changes."""
+    try:
+        hh, mm = map(int, os.environ.get("SOCIAL_TIME_LOCAL", "19:30").split(":"))
+        if 0 <= hh <= 23 and 0 <= mm <= 59:
+            return hh, mm
+    except (TypeError, ValueError):
+        pass
+    return 19, 30
 
 TAGS = {
     "fa": "#بیت_کوین #کریپتو #ارز_دیجیتال #تحلیل_بازار #طلا #دلار #اخبار_اقتصادی #بورس #CryptoAI",
@@ -37,6 +51,54 @@ def _channel(lang):
     c = tb.cfg()
     ch = c["channel_en"] if lang == "en" else c["channel"]
     return ch if ch.startswith("@") else ""
+
+
+def promo_links() -> tuple[str, str, str]:
+    """Public website plus both public Telegram channels, where configured."""
+    def telegram_url(lang: str) -> str:
+        env_key = "PUBLIC_CHANNEL_URL_EN" if lang == "en" else "PUBLIC_CHANNEL_URL"
+        provided = os.environ.get(env_key, "").strip()
+        if provided.startswith("https://t.me/"):
+            return provided
+        handle = _channel(lang)
+        return "https://t.me/" + handle.lstrip("@") if handle else ""
+    return pc.site_url(), telegram_url("fa"), telegram_url("en")
+
+
+def promo_caption(lang: str) -> list[str]:
+    site, fa, en = promo_links()
+    if lang == "fa":
+        return ["🌐 سایت: " + (site or "لینک در بیو"),
+                "🇮🇷 تلگرام فارسی: " + (fa or "لینک در بیو"),
+                "🌍 تلگرام انگلیسی: " + (en or "لینک در بیو")]
+    return ["🌐 Website: " + (site or "link in bio"),
+            "🇮🇷 Persian Telegram: " + (fa or "link in bio"),
+            "🌍 English Telegram: " + (en or "link in bio")]
+
+
+def add_promo_footer(img: Image.Image) -> Image.Image:
+    """Legible website and both channels on every export, in a compact footer."""
+    w, h = img.size
+    site, fa, en = promo_links()
+    entries = [("WEB", site or "LINK IN BIO"),
+               ("TG FA", fa or "LINK IN BIO"),
+               ("TG EN", en or "LINK IN BIO")]
+    overlay = ImageDraw.Draw(img)
+    tall = h > w
+    font_size = 34 if tall else 26
+    line_height = 49 if tall else 36
+    footer_height = line_height * 3 + (52 if tall else 32)
+    top = h - footer_height - 15
+    overlay.rounded_rectangle((24, top, w - 24, h - 15), radius=22,
+                              fill=pc.PANEL, outline=pc.LINE, width=2)
+    for i, (label, raw) in enumerate(entries):
+        value = raw.replace("https://", "").replace("http://", "").strip("/")
+        # Never let a long URL run off the right edge of the image.
+        max_chars = 46 if tall else 50
+        text = (label + " · " + value)[:max_chars]
+        overlay.text((53, top + (30 if tall else 19) + i * line_height),
+                     text, font=pc._f(font_size, False), fill=pc.BRAND if i == 0 else pc.FG)
+    return img
 
 
 def _canvas(w, h):
@@ -122,6 +184,7 @@ def compose(card_png: bytes, n: dict, lang: str, w: int, h: int) -> bytes:
         d = ImageDraw.Draw(img)
         ch = _channel(lang)
         d.text((pad + 10, h - 80), (f"Telegram: {ch}" if ch else CTA[lang][1]), font=pc._f(36), fill=pc.BRAND)
+    add_promo_footer(img)
     out = io.BytesIO()
     img.save(out, "PNG", optimize=True)
     return out.getvalue()
@@ -135,15 +198,15 @@ def caption(n: dict, assets: list, lang: str) -> str:
         lines = [f"📰 {head}", "", "اثر احتمالی:"]
         for x in im:
             lines.append(f"{'🟢' if x['d'] > 0 else '🔴'} {pc.NAMES.get(x['a'], x['a'])} {'↑' if x['d'] > 0 else '↓'} {pc.STRENGTH.get(x.get('s', 1), '')}: {x.get('w', '')}")
-        ch = _channel("fa")
-        lines += ["", "تحلیل لحظه‌ای همهٔ خبرهای مهم بازار در کانال تلگرام ما" + (f": {ch}" if ch else " (لینک در بیو)"),
+        lines += ["", "برای تحلیل کامل و خبرهای بیشتر، سایت و کانال‌های ما را دنبال کنید:",
+                  *promo_caption("fa"),
                   "⚠️ تحلیل خبر است، سیگنال خرید یا فروش نیست.", "", TAGS["fa"]]
     else:
         lines = [f"📰 {head}", "", "Likely effect:"]
         for x in im:
             lines.append(f"{'🟢' if x['d'] > 0 else '🔴'} {pc.EN.get(x['a'], x['a'])} {'↑' if x['d'] > 0 else '↓'} {pc.STRENGTH_EN.get(x.get('s', 1), '')}: {x.get('we', '')}")
-        ch = _channel("en")
-        lines += ["", "Live analysis of every market-moving story on our Telegram channel" + (f": {ch}" if ch else " (link in bio)"),
+        lines += ["", "For more market news and analysis, follow our website and channels:",
+                  *promo_caption("en"),
                   "⚠️ News analysis, not a buy/sell signal.", "", TAGS["en"]]
     return "\n".join(lines)
 
@@ -266,13 +329,13 @@ def pick_story():
     return (cand[0] if cand else None), assets
 
 
-def send_kit() -> str:
+def send_kit(publish_instagram: bool = True) -> str:
     n, assets = pick_story()
     if not n:
         return "خبر مهمی در ۲۴ ساعت اخیر برای بستهٔ شبکه‌های اجتماعی نبود."
     admin = tb.cfg()["admin"]
     ig_note = ""
-    if ig_ready():
+    if publish_instagram and ig_ready():
         posted = instagram_daily(n, assets)
         ig_note = (f"✅ اینستاگرام خودکار: {posted} منتشر شد.\n" if posted else
                    f"⚠️ انتشار خودکار اینستاگرام نشد: {_rt['last_error']}\n")
@@ -294,19 +357,45 @@ def send_kit() -> str:
 
 
 def tick():
+    """One daily *private* content kit, after 19:30 Stockholm time.
+
+    The in-process loop and an external wake-up may both invoke this.
+    A lock and backed-up local date prevent double delivery on restarts.
+    """
     if not tb.ready():
-        return
-    now = datetime.now(timezone.utc)
-    today = now.strftime("%Y-%m-%d")
-    if now.hour == HOUR and _rt["day"] != today:
+        return None
+    now = datetime.now(SOCIAL_TZ)
+    hh, mm = _scheduled_time()
+    if (now.hour, now.minute) < (hh, mm):
+        return None
+    today = now.date().isoformat()
+    if _rt["day"] == today or not _tick_lock.acquire(blocking=False):
+        return None
+    try:
+        import pro
+        pro.restore()
+        if pro.S.get("social_day") == today:
+            _rt["day"] = today
+            return None
+        # User reviews and publishes on Instagram/TikTok manually.
+        # Do NOT invoke the existing Instagram auto-publish integration here.
+        result = send_kit(publish_instagram=False)
+        if result != "بستهٔ شبکه‌های اجتماعی فرستاده شد.":
+            _rt["last_error"] = result[:150]
+            return result
         _rt["day"] = today
-        try:
-            send_kit()
-        except Exception as e:
-            _rt["last_error"] = str(e)[:150]
-    if now.minute == 7:
-        ig_refresh()
+        pro.S["social_day"] = today
+        pro.backup()
+        return result
+    except Exception as exc:
+        _rt["last_error"] = f"daily kit: {exc}"[:150]
+        return None
+    finally:
+        _tick_lock.release()
 
 
 def status() -> dict:
-    return {"instagram": ig_ready(), "last_error": _rt["last_error"]}
+    import pro
+    return {"instagram": ig_ready(), "last_error": _rt["last_error"],
+            "schedule": os.environ.get("SOCIAL_TIME_LOCAL", "19:30") + " Europe/Stockholm",
+            "last_social_day": pro.S.get("social_day") or _rt["day"]}
