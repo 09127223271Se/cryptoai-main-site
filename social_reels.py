@@ -46,9 +46,7 @@ def _scenes(poster_png: bytes, news: dict, lang: str) -> list[Image.Image]:
               lang, 970, 60)
     draw.rounded_rectangle((75, 1370, 1005, 1510), radius=29, fill=pc.BRAND)
     draw.text((140, 1403), "SAVE  •  SHARE  •  FOLLOW", font=pc._f(52), fill=pc.BG)
-    url = pc.site_url().replace("https://", "").replace("http://", "").strip("/")
-    draw.text((80, 1630), (url[:42] if url else "LINK IN BIO"), font=pc._f(46), fill=pc.FG)
-    draw.text((80, 1770), "News analysis • not financial advice", font=pc._f(34), fill=pc.MUTED)
+    draw.text((80, 1570), "News analysis • not financial advice", font=pc._f(34), fill=pc.MUTED)
     # Include the CryptoAI website and Persian/English Telegram channels in the outro.
     import social
     social.add_promo_footer(outro)
