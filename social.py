@@ -282,6 +282,14 @@ def send_kit() -> str:
         _send_file(admin, compose(card, n, lang, 1080, 1080), f"cryptoai-{lang}-post-1080x1080.png", "Instagram post" if lang == "en" else "پست اینستاگرام (مربعی)")
         _send_file(admin, compose(card, n, lang, 1080, 1920), f"cryptoai-{lang}-story-1080x1920.png", "Story / Reels / TikTok" if lang == "en" else "استوری، ریلز و تیک‌تاک (عمودی)")
         tb.call("sendMessage", chat_id=admin, text=caption(n, assets, lang), disable_web_page_preview=True)
+    # Add private 15-second MP4 reels without changing existing Instagram or news publishing.
+    # On cheap hosts the video encoder may be unavailable; keep the image kit working.
+    if os.environ.get("SOCIAL_REELS_ENABLED", "1") != "0":
+        try:
+            import social_reels
+            social_reels.send_reels(n, assets)
+        except Exception as e:
+            _rt["last_error"] = f"reels: {e}"[:150]
     return "بستهٔ شبکه‌های اجتماعی فرستاده شد."
 
 
