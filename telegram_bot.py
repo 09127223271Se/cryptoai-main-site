@@ -97,6 +97,7 @@ def ensure_webhook():
                  commands=[{"command": "news", "description": "ساخت و انتشار پست خبری تازه"},
                            {"command": "status", "description": "وضعیت ربات"},
                            {"command": "kit", "description": "بستهٔ اینستاگرام و تیک‌تاک"},
+                           {"command": "reels", "description": "ویدیوی ۱۵ ثانیه‌ای برای ریلز و تیک‌تاک"},
                            {"command": "invite", "description": "لینک دعوت من"},
                            {"command": "me", "description": "امتیاز من"}])
         except Exception:
@@ -320,6 +321,13 @@ def handle_update(upd: dict) -> None:
             import growth
             growth.on_private(m)
         return
+    if txt.startswith("/reels"):
+        call("sendMessage", chat_id=chat, text="🎬 در حال ساخت ویدیوی فارسی و انگلیسی برای Reels و TikTok…")
+        def _reels():
+            import social_reels
+            return social_reels.send_latest_reels()
+        threading.Thread(target=lambda: _safe_reply(chat, _reels), daemon=True).start()
+        return
     if txt.startswith("/kit"):
         call("sendMessage", chat_id=chat, text="⏳ در حال ساختن بستهٔ اینستاگرام و تیک‌تاک…")
         def _kit():
@@ -338,7 +346,7 @@ def handle_update(upd: dict) -> None:
             f"پست خودکار: {'هر ' + str(c['every']) + ' دقیقه' if c['every'] else 'خاموش'}"
             f" · {'انتشار مستقیم' if c['auto'] else 'با تأیید شما'} · خبر فوری بلافاصله\n"
             f"پیش‌نویس فرستاده‌شده: {s['drafts_sent']} · منتشرشده: {s['published']} · ردشده: {s['rejected']}\n"
-            "دستورها: /news ساخت پست تازه · /status وضعیت"))
+            "دستورها: /news خبر تازه · /kit بستهٔ شبکه‌های اجتماعی · /reels ویدیوی ۱۵ ثانیه‌ای · /status وضعیت"))
 
 
 def _safe_reply(chat, fn):
